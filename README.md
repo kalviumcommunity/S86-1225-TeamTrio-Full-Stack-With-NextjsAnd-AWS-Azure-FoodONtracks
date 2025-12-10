@@ -31,3 +31,35 @@ foodontracks/
 │
 └── public/
 └── screenshots/ # Screenshot of local run
+
+## 📸 Local Development Screenshot
+
+![RuralLite Homepage Running Locally](./foodontracks//public/screenshots/local-dev-screenshot.png)
+
+*Screenshot showing the FoodONtracks homepage running on localhost:3000*
+
+---
+
+---
+
+## 📂 Explanation of Each Directory
+
+| Folder | Purpose |
+|--------|---------|
+| **app/** | Main routing structure using Next.js App Router |
+| **layout.tsx** | Global layout wrapper shared across all pages |
+| **page.tsx** | Homepage of the project |
+| **components/** | Reusable UI components such as Button |
+| **lib/** | Utility files such as API configuration |
+| **services/** | Wrapper functions for interacting with backend APIs |
+| **types/** | TypeScript interfaces for batches, logs, users |
+| **styles/** | Placeholder for global styles |
+| **public/screenshots/** | Stores screenshot of local run for submission |
+
+---
+
+## ⚙️ Setup Instructions
+
+### 1️⃣ Install dependencies
+```bash
+npm install
