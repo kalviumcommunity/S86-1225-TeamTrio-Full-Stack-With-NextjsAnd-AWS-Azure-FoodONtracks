@@ -205,3 +205,27 @@ NEXT_PUBLIC_API_URL=http://localhost:8080/api
 ## 📝 License
 
 This project is part of the Kalvium Full Stack Development Program.
+
+## Environment Variables & Secrets
+
+This app uses environment variables for credentials and configuration.
+
+### Files
+- `.env.example` — template with placeholder values (committed).
+- `.env.local` — developer local file with real values (gitignored, do not commit).
+
+### Required variables (examples)
+**Server-only (do not expose to client)**
+- `DATABASE_URL` — Postgres connection string.
+- `REDIS_URL` — Redis connection string.
+- `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` — AWS credentials for S3.
+- `S3_BUCKET` — S3 bucket name.
+
+**Client (safe)**
+- `NEXT_PUBLIC_API_BASE_URL` — base URL used by client.
+
+### Local setup
+1. Copy template:
+   ```bash
+   cp .env.example .env.local
+
