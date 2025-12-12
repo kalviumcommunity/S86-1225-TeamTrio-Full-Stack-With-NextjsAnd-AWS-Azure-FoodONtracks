@@ -229,3 +229,18 @@ This app uses environment variables for credentials and configuration.
    ```bash
    cp .env.example .env.local
 
+   ## Branch naming conventions
+
+We follow a simple, consistent naming pattern for branches:
+
+- `feature/<feature-name>` — new features (e.g., `feature/login-auth`)
+- `fix/<bug-name>` — bug fixes (e.g., `fix/navbar-alignment`)
+- `chore/<task-name>` — chores, infra, build updates (e.g., `chore/deps-update`)
+- `docs/<update-name>` — documentation changes (e.g., `docs/readme-edit`)
+- `hotfix/<issue>` — urgent fixes to production
+
+Guidelines:
+- Use kebab-case for names (`feature/user-profile`).
+- Keep names short but meaningful.
+- Link PRs to issues using `#<issue-number>` in the PR description.
+
