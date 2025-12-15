@@ -229,7 +229,7 @@ This app uses environment variables for credentials and configuration.
    ```bash
    cp .env.example .env.local
 
-   ## Branch naming conventions
+## Branch naming conventions
 
 We follow a simple, consistent naming pattern for branches:
 
@@ -243,4 +243,391 @@ Guidelines:
 - Use kebab-case for names (`feature/user-profile`).
 - Keep names short but meaningful.
 - Link PRs to issues using `#<issue-number>` in the PR description.
+
+---
+
+## 🐳 Docker Setup
+
+This project includes Docker configuration to containerize the Next.js application along with PostgreSQL and Redis services.
+
+### Files Overview
+
+#### Dockerfile (`foodontracks/Dockerfile`)
+
+The Dockerfile defines how the Next.js application is built and run inside a container:
+
+```dockerfile
+FROM node:20-alpine
+```
+- **Base Image:** Uses Node.js 20 Alpine Linux (lightweight, ~5MB base)
+- **Why Alpine?** Smaller image size, faster builds, reduced attack surface
+
+```dockerfile
+WORKDIR /app
+```
+- Sets the working directory inside the container to `/app`
+- All subsequent commands execute in this directory
+
+```dockerfile
+COPY package*.json ./
+RUN npm install
+```
+- **Copy Package Files:** Copies `package.json` and `package-lock.json` first
+- **Install Dependencies:** Runs `npm install` to install all dependencies
+- **Layer Caching:** Separating this step allows Docker to cache node_modules, speeding up rebuilds when only code changes
+
+```dockerfile
+COPY . .
+RUN npm run build
+```
+- **Copy Application Code:** Copies all project files into the container
+- **Build Next.js:** Runs the production build (`next build`)
+- **Output:** Creates optimized `.next` directory with production-ready assets
+
+```dockerfile
+EXPOSE 3000
+```
+- **Port Declaration:** Documents that the container listens on port 3000
+- **Note:** This is documentation only; actual port mapping is done in docker-compose.yml
+
+```dockerfile
+CMD ["npm", "run", "start"]
+```
+- **Start Command:** Runs `next start` to serve the production build
+- **Production Mode:** Serves the optimized build with server-side rendering enabled
+
+#### docker-compose.yml
+
+The Docker Compose file orchestrates multiple services (app, database, Redis) to work together:
+
+##### Service: app
+```yaml
+app:
+  build: ./foodontracks
+  container_name: nextjs_app
+  ports:
+    - "3000:3000"
+```
+- **Build Context:** Points to `./foodontracks` directory containing the Dockerfile
+- **Container Name:** Names the container `nextjs_app` for easy identification
+- **Port Mapping:** Maps host port 3000 to container port 3000 (host:container)
+
+```yaml
+  environment:
+    - DATABASE_URL=postgres://postgres:password@db:5432/mydb
+    - REDIS_URL=redis://redis:6379
+```
+- **Environment Variables:** Injected into the container at runtime
+- **DATABASE_URL:** PostgreSQL connection string using service name `db` as hostname
+- **REDIS_URL:** Redis connection string using service name `redis` as hostname
+- **Service Discovery:** Docker's internal DNS resolves service names to container IPs
+
+```yaml
+  depends_on:
+    - db
+    - redis
+```
+- **Dependency Management:** Ensures `db` and `redis` start before `app`
+- **Note:** This only ensures containers start in order, not that services are ready
+- **Production Consideration:** Use health checks for more robust startup ordering
+
+```yaml
+  networks:
+    - localnet
+```
+- **Network Attachment:** Connects to the `localnet` bridge network
+- **Isolation:** Services can only communicate within the same network
+
+##### Service: db (PostgreSQL)
+```yaml
+db:
+  image: postgres:15-alpine
+  container_name: postgres_db
+  restart: always
+```
+- **Image:** Uses official PostgreSQL 15 Alpine image (lightweight)
+- **Restart Policy:** Always restarts the container if it stops
+- **Use Case:** Ensures database availability even after crashes
+
+```yaml
+  environment:
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: password
+    POSTGRES_DB: mydb
+```
+- **Database Credentials:** Creates initial database user and database
+- **Security Warning:** Change `password` in production environments
+- **Initial Setup:** These variables only work on first container creation
+
+```yaml
+  volumes:
+    - db_data:/var/lib/postgresql/data
+```
+- **Persistent Storage:** Mounts named volume `db_data` to PostgreSQL data directory
+- **Data Persistence:** Database data survives container restarts and rebuilds
+- **Location:** Data stored in Docker's volume storage (managed by Docker)
+
+```yaml
+  ports:
+    - "5432:5432"
+```
+- **Port Mapping:** Exposes PostgreSQL on host port 5432
+- **Use Case:** Allows connecting from host machine using database tools (pgAdmin, DBeaver)
+- **Security Note:** In production, avoid exposing database ports directly
+
+##### Service: redis
+```yaml
+redis:
+  image: redis:7-alpine
+  container_name: redis_cache
+  ports:
+    - "6379:6379"
+```
+- **Image:** Uses official Redis 7 Alpine image
+- **Purpose:** In-memory cache and session storage
+- **Port:** Exposes Redis on default port 6379
+- **No Volumes:** Data is ephemeral (lost on container restart) — typical for cache
+
+##### Networks
+```yaml
+networks:
+  localnet:
+    driver: bridge
+```
+- **Bridge Network:** Creates isolated network for inter-container communication
+- **DNS Resolution:** Containers can communicate using service names (e.g., `db`, `redis`)
+- **Isolation:** Services not on this network cannot access these containers
+
+##### Volumes
+```yaml
+volumes:
+  db_data:
+```
+- **Named Volume:** Docker-managed storage for PostgreSQL data
+- **Persistence:** Data survives container deletion
+- **Management:** Use `docker volume ls` and `docker volume rm` to manage
+
+#### .dockerignore
+
+Excludes unnecessary files from the Docker build context:
+
+```
+node_modules
+.next
+.env.local
+.git
+```
+- **Faster Builds:** Reduces build context size sent to Docker daemon
+- **Security:** Prevents sensitive files (`.env.local`) from being copied into images
+- **Efficiency:** Skips files that will be regenerated during build
+
+### Running the Docker Setup
+
+#### 1. Build and Start All Services
+```bash
+docker-compose up --build
+```
+- **`--build`:** Forces rebuild of images (use when Dockerfile or dependencies change)
+- **What Happens:**
+  1. Builds the Next.js app image from Dockerfile
+  2. Pulls PostgreSQL and Redis images (if not cached)
+  3. Creates network and volumes
+  4. Starts all three containers in dependency order
+  5. Attaches logs to terminal (use Ctrl+C to stop)
+
+#### 2. Run in Detached Mode (Background)
+```bash
+docker-compose up -d
+```
+- **`-d`:** Runs containers in background
+- **View Logs:** `docker-compose logs -f` (follow logs)
+- **Stop Services:** `docker-compose down`
+
+#### 3. Verify Running Containers
+```bash
+docker ps
+```
+**Expected Output:**
+```
+CONTAINER ID   IMAGE              COMMAND                  PORTS                    NAMES
+abc123         foodontracks_app   "docker-entrypoint.s…"   0.0.0.0:3000->3000/tcp   nextjs_app
+def456         postgres:15-alpine "docker-entrypoint.s…"   0.0.0.0:5432->5432/tcp   postgres_db
+ghi789         redis:7-alpine     "docker-entrypoint.s…"   0.0.0.0:6379->6379/tcp   redis_cache
+```
+
+#### 4. Access Services
+- **Next.js App:** http://localhost:3000
+- **PostgreSQL:** `localhost:5432` (use any PostgreSQL client)
+- **Redis:** `localhost:6379` (use Redis CLI or GUI tools)
+
+#### 5. View Logs
+```bash
+# All services
+docker-compose logs
+
+# Specific service
+docker-compose logs app
+docker-compose logs db
+
+# Follow logs (live)
+docker-compose logs -f app
+```
+
+#### 6. Stop Services
+```bash
+# Stop containers (keeps volumes)
+docker-compose down
+
+# Stop and remove volumes (deletes data)
+docker-compose down -v
+```
+
+#### 7. Rebuild After Changes
+```bash
+# Rebuild only the app
+docker-compose build app
+
+# Rebuild and restart
+docker-compose up --build -d
+```
+
+### Common Issues & Solutions
+
+#### Issue 1: Port Already in Use
+**Error:** `Bind for 0.0.0.0:3000 failed: port is already allocated`
+
+**Solution:**
+```bash
+# Find process using port 3000
+netstat -ano | findstr :3000
+
+# Kill the process (Windows)
+taskkill /PID <PID> /F
+
+# Or change port in docker-compose.yml
+ports:
+  - "3001:3000"  # Use port 3001 on host instead
+```
+
+#### Issue 2: Build Fails with Permission Errors
+**Error:** `EACCES: permission denied`
+
+**Solution (Windows):**
+- Run Docker Desktop as Administrator
+- Check file sharing settings in Docker Desktop → Settings → Resources → File Sharing
+
+**Solution (Linux):**
+```bash
+sudo usermod -aG docker $USER
+# Log out and log back in
+```
+
+#### Issue 3: Database Connection Refused
+**Error:** `Error: connect ECONNREFUSED 127.0.0.1:5432`
+
+**Solution:**
+- Inside container, use service name `db`, not `localhost`
+- Correct: `postgres://postgres:password@db:5432/mydb`
+- Wrong: `postgres://postgres:password@localhost:5432/mydb`
+- Ensure `depends_on` is configured correctly
+
+#### Issue 4: Slow Build Times
+**Cause:** Copying `node_modules` into build context
+
+**Solution:**
+- Ensure `.dockerignore` excludes `node_modules`
+- Use multi-stage builds for production:
+```dockerfile
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+RUN npm run build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+#### Issue 5: Environment Variables Not Working
+**Solution:**
+- Use `NEXT_PUBLIC_` prefix for client-side variables
+- Server-side variables work without prefix
+- Rebuild after changing environment variables in docker-compose.yml
+
+#### Issue 6: Hot Reload Not Working in Development
+**Solution:**
+- For development with hot reload, mount code as volume:
+```yaml
+volumes:
+  - ./foodontracks:/app
+  - /app/node_modules  # Prevent overwriting node_modules
+```
+- Use `npm run dev` instead of `npm run start` in CMD
+
+### Production Best Practices
+
+1. **Use Multi-Stage Builds:** Reduce final image size
+2. **Health Checks:** Add health checks to services
+```yaml
+healthcheck:
+  test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+  interval: 30s
+  timeout: 10s
+  retries: 3
+```
+3. **Secrets Management:** Use Docker secrets or external secret managers
+4. **Resource Limits:** Set memory and CPU limits
+```yaml
+deploy:
+  resources:
+    limits:
+      cpus: '1'
+      memory: 512M
+```
+5. **Non-Root User:** Run containers as non-root user for security
+6. **Image Scanning:** Scan images for vulnerabilities using `docker scan`
+
+### Screenshots
+
+#### Successful Build
+![Docker Build Success](./public/screenshots/docker-build.png)
+*Screenshot showing successful Docker build with all layers cached*
+
+#### Running Containers
+![Docker PS Output](./public/screenshots/docker-ps.png)
+*All three containers running with correct port mappings*
+
+#### Application Running
+![App Running in Docker](./public/screenshots/docker-app-running.png)
+*Next.js app accessible at http://localhost:3000 from Docker container*
+
+### Reflection
+
+**Challenges Faced:**
+
+1. **Port Conflicts:** Initial setup failed because port 3000 was already in use by a local development server. Solved by stopping the local server before running Docker.
+
+2. **Build Context Size:** First build was very slow (2+ minutes) because `node_modules` and `.next` were included. Added `.dockerignore` which reduced build time to ~30 seconds.
+
+3. **Database Connection:** App couldn't connect to PostgreSQL initially. Learned that inside Docker containers, you must use service names (`db`) not `localhost` for inter-container communication.
+
+4. **Volume Persistence:** Lost database data after stopping containers. Learned the difference between anonymous and named volumes. Now using named volumes for persistence.
+
+5. **Environment Variables:** Confusion about `NEXT_PUBLIC_` prefix. Learned that Next.js requires this prefix for client-side env vars, while server-side vars work without it.
+
+**Key Learnings:**
+
+- Docker layer caching is powerful — structure Dockerfile to maximize cache hits
+- Docker Compose simplifies multi-container orchestration significantly
+- Service names in docker-compose.yml act as DNS hostnames
+- Named volumes are essential for data persistence
+- `.dockerignore` is as important as `.gitignore` for efficient builds
+
+---
 
