@@ -73,7 +73,38 @@ npm run dev
 
 ### 3️⃣ Open browser
 Navigate to `http://localhost:3000`
+---
 
+## 🗄️ Database Migrations & Seeding
+A reproducible workflow to manage schema changes and seed initial data using Prisma.
+
+### Commands
+- Create & apply a migration locally:
+```bash
+npx prisma migrate dev --name init_schema
+```
+- Seed the database (idempotent seed script):
+```bash
+npm run db:seed      # or `npx prisma db seed`
+```
+- Reset the database (drops data, re-applies migrations, re-runs seed):
+```bash
+npm run db:reset     # CAUTION: deletes data
+```
+
+### Best practices
+- Keep schema changes in versioned migrations (do not edit migrations directly after applying in production).
+- Test every migration locally and in a staging environment before applying to production.
+- Ensure seeds are idempotent (our `prisma/seed.ts` clears dependent tables first).
+- Take backups and use read-only maintenance windows for production migrations.
+
+### Note on a destructive migration
+During my run I found a later migration (`20251216100124_init`) that drops several tables (it appears to revert the previous migration). To recover a working schema locally I applied migrations and then used `prisma db push` to sync the current `schema.prisma` to the database (this restored dropped tables). For production, avoid destructive migrations or ensure they are intentional and well-documented.
+
+### Reflection
+Treat migrations as code: review, test, and commit them. Seed data should be lightweight and safe for repeated runs.
+
+---
 ---
 
 ## 🛠️ TypeScript & ESLint Configuration
