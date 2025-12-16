@@ -1,0 +1,38 @@
+[prisma migrate deploy]
+Applying migration `20251215090201_foodontracks`
+Applying migration `20251216100124_init`
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20251215090201_foodontracks/
+    └─ migration.sql
+  └─ 20251216100124_init/
+    └─ migration.sql
+
+All migrations have been successfully applied.
+
+[prisma db push]
+Pushed Prisma schema to database to restore dropped tables.
+
+[prisma db seed]
+🌱 Starting database seeding...
+✅ Cleared existing data
+✅ Created 3 users
+✅ Created 2 addresses
+✅ Created 3 restaurants
+✅ Created 8 menu items
+✅ Created 2 delivery persons
+✅ Created 2 orders
+✅ Created 4 order items
+✅ Created 5 tracking events
+✅ Created 2 payments
+✅ Created 1 reviews
+
+🎉 Database seeding completed successfully!
+
+Summary:
+- DB: postgres://postgres@db:5432/mydb (container)
+- Migrations applied: 20251215090201_foodontracks, 20251216100124_init
+- Seed inserted expected records (counts as above)
+
