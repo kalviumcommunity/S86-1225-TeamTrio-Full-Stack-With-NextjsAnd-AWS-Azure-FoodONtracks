@@ -1,5 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendSuccess, sendError } from "@/lib/responseHandler";
+import { ERROR_CODES } from "@/lib/errorCodes";
 
 // GET /api/restaurants - Get all restaurants with pagination
 export async function GET(req: NextRequest) {
@@ -53,20 +55,25 @@ export async function GET(req: NextRequest) {
       prisma.restaurant.count({ where }),
     ]);
 
-    return NextResponse.json({
-      data: restaurants,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+    return sendSuccess(
+      {
+        restaurants,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
       },
-    });
+      "Restaurants fetched successfully"
+    );
   } catch (error) {
     console.error("Error fetching restaurants:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch restaurants" },
-      { status: 500 }
+    return sendError(
+      "Failed to fetch restaurants",
+      ERROR_CODES.DATABASE_FAILURE,
+      500,
+      error
     );
   }
 }
@@ -96,9 +103,10 @@ export async function POST(req: NextRequest) {
       !state ||
       !zipCode
     ) {
-      return NextResponse.json(
-        { error: "All required fields must be provided" },
-        { status: 400 }
+      return sendError(
+        "All required fields must be provided",
+        ERROR_CODES.MISSING_REQUIRED_FIELD,
+        400
       );
     }
 
@@ -110,9 +118,10 @@ export async function POST(req: NextRequest) {
     });
 
     if (existingRestaurant) {
-      return NextResponse.json(
-        { error: "Restaurant with this email or phone number already exists" },
-        { status: 409 }
+      return sendError(
+        "Restaurant with this email or phone number already exists",
+        ERROR_CODES.DUPLICATE_ENTRY,
+        409
       );
     }
 
@@ -130,15 +139,14 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json(
-      { message: "Restaurant created successfully", data: restaurant },
-      { status: 201 }
-    );
+    return sendSuccess(restaurant, "Restaurant created successfully", 201);
   } catch (error) {
     console.error("Error creating restaurant:", error);
-    return NextResponse.json(
-      { error: "Failed to create restaurant" },
-      { status: 500 }
+    return sendError(
+      "Failed to create restaurant",
+      ERROR_CODES.DATABASE_FAILURE,
+      500,
+      error
     );
   }
 }

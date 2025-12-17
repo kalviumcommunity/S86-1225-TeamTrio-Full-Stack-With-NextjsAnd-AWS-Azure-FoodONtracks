@@ -1,5 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendSuccess, sendError } from "@/lib/responseHandler";
+import { ERROR_CODES } from "@/lib/errorCodes";
 
 // GET /api/menu-items - Get all menu items with pagination
 export async function GET(req: NextRequest) {
@@ -44,20 +46,25 @@ export async function GET(req: NextRequest) {
       prisma.menuItem.count({ where }),
     ]);
 
-    return NextResponse.json({
-      data: menuItems,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+    return sendSuccess(
+      {
+        menuItems,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
       },
-    });
+      "Menu items fetched successfully"
+    );
   } catch (error) {
     console.error("Error fetching menu items:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch menu items" },
-      { status: 500 }
+    return sendError(
+      "Failed to fetch menu items",
+      ERROR_CODES.DATABASE_FAILURE,
+      500,
+      error
     );
   }
 }
@@ -78,12 +85,10 @@ export async function POST(req: NextRequest) {
 
     // Validation
     if (!restaurantId || !name || !price || !category || !preparationTime) {
-      return NextResponse.json(
-        {
-          error:
-            "Required fields: restaurantId, name, price, category, preparationTime",
-        },
-        { status: 400 }
+      return sendError(
+        "Required fields: restaurantId, name, price, category, preparationTime",
+        ERROR_CODES.MISSING_REQUIRED_FIELD,
+        400
       );
     }
 
@@ -93,9 +98,10 @@ export async function POST(req: NextRequest) {
     });
 
     if (!restaurant) {
-      return NextResponse.json(
-        { error: "Restaurant not found" },
-        { status: 404 }
+      return sendError(
+        "Restaurant not found",
+        ERROR_CODES.RESTAURANT_NOT_FOUND,
+        404
       );
     }
 
@@ -112,15 +118,14 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json(
-      { message: "Menu item created successfully", data: menuItem },
-      { status: 201 }
-    );
+    return sendSuccess(menuItem, "Menu item created successfully", 201);
   } catch (error) {
     console.error("Error creating menu item:", error);
-    return NextResponse.json(
-      { error: "Failed to create menu item" },
-      { status: 500 }
+    return sendError(
+      "Failed to create menu item",
+      ERROR_CODES.DATABASE_FAILURE,
+      500,
+      error
     );
   }
 }

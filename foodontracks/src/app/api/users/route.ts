@@ -1,5 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendSuccess, sendError } from "@/lib/responseHandler";
+import { ERROR_CODES } from "@/lib/errorCodes";
 import * as bcrypt from "bcrypt";
 
 // GET /api/users - Get all users with pagination
@@ -36,20 +38,25 @@ export async function GET(req: NextRequest) {
       prisma.user.count({ where }),
     ]);
 
-    return NextResponse.json({
-      data: users,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+    return sendSuccess(
+      {
+        users,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
       },
-    });
+      "Users fetched successfully"
+    );
   } catch (error) {
     console.error("Error fetching users:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch users" },
-      { status: 500 }
+    return sendError(
+      "Failed to fetch users",
+      ERROR_CODES.DATABASE_FAILURE,
+      500,
+      error
     );
   }
 }
@@ -62,9 +69,10 @@ export async function POST(req: NextRequest) {
 
     // Validation
     if (!name || !email || !password) {
-      return NextResponse.json(
-        { error: "Name, email, and password are required" },
-        { status: 400 }
+      return sendError(
+        "Name, email, and password are required",
+        ERROR_CODES.MISSING_REQUIRED_FIELD,
+        400
       );
     }
 
@@ -76,9 +84,10 @@ export async function POST(req: NextRequest) {
     });
 
     if (existingUser) {
-      return NextResponse.json(
-        { error: "User with this email or phone number already exists" },
-        { status: 409 }
+      return sendError(
+        "User with this email or phone number already exists",
+        ERROR_CODES.DUPLICATE_ENTRY,
+        409
       );
     }
 
@@ -104,15 +113,14 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json(
-      { message: "User created successfully", data: user },
-      { status: 201 }
-    );
+    return sendSuccess(user, "User created successfully", 201);
   } catch (error) {
     console.error("Error creating user:", error);
-    return NextResponse.json(
-      { error: "Failed to create user" },
-      { status: 500 }
+    return sendError(
+      "Failed to create user",
+      ERROR_CODES.DATABASE_FAILURE,
+      500,
+      error
     );
   }
 }

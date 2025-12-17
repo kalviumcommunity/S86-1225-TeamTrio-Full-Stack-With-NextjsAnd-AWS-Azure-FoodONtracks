@@ -1,5 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendSuccess, sendError } from "@/lib/responseHandler";
+import { ERROR_CODES } from "@/lib/errorCodes";
 
 // GET /api/orders - Get all orders with pagination
 export async function GET(req: NextRequest) {
@@ -72,20 +74,25 @@ export async function GET(req: NextRequest) {
       prisma.order.count({ where }),
     ]);
 
-    return NextResponse.json({
-      data: orders,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+    return sendSuccess(
+      {
+        orders,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
       },
-    });
+      "Orders fetched successfully"
+    );
   } catch (error) {
     console.error("Error fetching orders:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch orders" },
-      { status: 500 }
+    return sendError(
+      "Failed to fetch orders",
+      ERROR_CODES.DATABASE_FAILURE,
+      500,
+      error
     );
   }
 }
@@ -113,11 +120,10 @@ export async function POST(req: NextRequest) {
       !orderItems ||
       orderItems.length === 0
     ) {
-      return NextResponse.json(
-        {
-          error: "Required fields: userId, restaurantId, addressId, orderItems",
-        },
-        { status: 400 }
+      return sendError(
+        "Required fields: userId, restaurantId, addressId, orderItems",
+        ERROR_CODES.MISSING_REQUIRED_FIELD,
+        400
       );
     }
 
@@ -129,9 +135,10 @@ export async function POST(req: NextRequest) {
     ]);
 
     if (!user || !restaurant || !address) {
-      return NextResponse.json(
-        { error: "User, restaurant, or address not found" },
-        { status: 404 }
+      return sendError(
+        "User, restaurant, or address not found",
+        ERROR_CODES.NOT_FOUND,
+        404
       );
     }
 
@@ -144,9 +151,10 @@ export async function POST(req: NextRequest) {
     });
 
     if (menuItems.length !== menuItemIds.length) {
-      return NextResponse.json(
-        { error: "Some menu items not found" },
-        { status: 404 }
+      return sendError(
+        "Some menu items not found",
+        ERROR_CODES.MENU_ITEM_NOT_FOUND,
+        404
       );
     }
 
@@ -207,15 +215,14 @@ export async function POST(req: NextRequest) {
       return newOrder;
     });
 
-    return NextResponse.json(
-      { message: "Order created successfully", data: order },
-      { status: 201 }
-    );
+    return sendSuccess(order, "Order created successfully", 201);
   } catch (error) {
     console.error("Error creating order:", error);
-    return NextResponse.json(
-      { error: "Failed to create order" },
-      { status: 500 }
+    return sendError(
+      "Failed to create order",
+      ERROR_CODES.DATABASE_FAILURE,
+      500,
+      error
     );
   }
 }
