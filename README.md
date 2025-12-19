@@ -104,6 +104,7 @@ Endpoints
 - POST /api/auth/signup — Create a new user (name, email, password). Passwords are hashed with bcrypt before storage.
 - POST /api/auth/login — Verify credentials and receive a JWT (expires in 1 hour by default).
 - GET /api/users — Example protected endpoint: requires Authorization: Bearer <token>.
+- GET /api/admin — Admin-only endpoint: requires an admin role in the token.
 
 Environment
 - Set `JWT_SECRET` in `foodontracks/.env` (do not commit production secrets). A default development key is present for local testing.

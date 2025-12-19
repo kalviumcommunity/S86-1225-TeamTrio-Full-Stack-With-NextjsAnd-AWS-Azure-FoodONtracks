@@ -12,7 +12,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset",
-    "test:auth": "tsx scripts/auth_test.ts"
+    "test:auth": "tsx scripts/auth_test.ts",
+    "test:auth-middleware": "tsx scripts/auth_middleware_test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
