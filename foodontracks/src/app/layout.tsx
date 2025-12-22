@@ -1,7 +1,9 @@
-﻿/* app/layout.tsx (Server Component) */
-export const metadata = {
+﻿// app/layout.tsx
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
   title: "FoodONtracks",
-  description: "Batch-based Food Traceability for Indian Railways",
+  description: "Food traceability system",
 };
 
 export default function RootLayout({
@@ -11,22 +13,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body
-        style={{
-          margin: 0,
-          fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto",
-        }}
-      >
-        <header style={{ padding: 16, borderBottom: "1px solid #eee" }}>
-          <h1 style={{ margin: 0 }}>FoodONtracks</h1>
-        </header>
-
-        <main style={{ padding: 24 }}>{children}</main>
-
-        <footer style={{ padding: 16, borderTop: "1px solid #eee" }}>
-          © FoodONtracks
-        </footer>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

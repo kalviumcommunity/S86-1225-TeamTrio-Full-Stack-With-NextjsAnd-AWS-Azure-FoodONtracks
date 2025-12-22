@@ -21,8 +21,6 @@ export default function Home() {
       <div style={{ marginTop: 16 }}>
         <Button onClick={handleClick}>Click Me</Button>
       </div>
-
-      <div style={{ marginTop: 16, color: "#666" }}></div>
     </div>
   );
 }
