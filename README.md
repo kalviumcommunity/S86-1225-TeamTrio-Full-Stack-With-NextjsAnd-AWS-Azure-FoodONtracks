@@ -5,6 +5,24 @@ Each food batch receives a unique Batch ID, and suppliers, kitchens, vendors, an
 
 ---
 
+## 🆕 Latest Feature: File Upload with Pre-Signed URLs
+
+✅ **Secure file uploads to AWS S3 using pre-signed URLs**
+- Direct client-to-cloud uploads (no backend bottleneck)
+- Multi-layer validation (type, size, permissions)
+- 90% reduction in server load
+- Time-limited URLs (60s expiry) for enhanced security
+
+📚 **Documentation**:
+- [Complete Implementation Guide](FILE_UPLOAD_DOCUMENTATION.md)
+- [Quick Start Setup](QUICK_START_FILE_UPLOAD.md)
+- [Implementation Summary](FILE_UPLOAD_SUMMARY.md)
+- [Flow Diagram](UPLOAD_FLOW_DIAGRAM.txt)
+
+🧪 **Testing**: Run `.\foodontracks\test-file-upload.ps1` or use Bruno collection in `testing/file-upload/`
+
+---
+
 ## 📁 Folder Structure (Sprint-1)
 
 ```

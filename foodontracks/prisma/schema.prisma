@@ -239,3 +239,20 @@ model Review {
   @@index([restaurantId])
   @@index([rating])
 }
+
+model File {
+  id          Int      @id @default(autoincrement())
+  name        String
+  url         String
+  fileType    String
+  fileSize    Int
+  uploaderId  Int?
+  entityType  String?  // e.g., 'menu-item', 'restaurant', 'user'
+  entityId    Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([entityType, entityId])
+  @@index([uploaderId])
+  @@index([createdAt])
+}
