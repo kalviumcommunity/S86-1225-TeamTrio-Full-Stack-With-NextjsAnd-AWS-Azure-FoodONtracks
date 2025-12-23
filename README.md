@@ -250,6 +250,310 @@ Users always know where they are in the application, and search engines can unde
 
 ---
 
+## 🎨 Layout and Component Architecture
+
+FoodONtracks follows a **modular component architecture** with reusable UI elements, shared layout templates, and consistent design patterns across all pages.
+
+### Component Folder Structure
+
+```
+src/components/
+├── layout/
+│   ├── Header.tsx          → Main navigation header
+│   ├── Sidebar.tsx         → Secondary navigation sidebar
+│   └── LayoutWrapper.tsx    → Composite layout container
+├── ui/
+│   ├── Button.tsx          → Reusable button component
+│   ├── Card.tsx            → Reusable card/container component
+│   └── InputField.tsx      → Reusable input/textarea component
+└── index.ts                → Barrel export for easy imports
+```
+
+### Component Hierarchy
+
+```
+LayoutWrapper (Composite)
+├── Header (Navigation)
+│   └── Links: Home, Login, Dashboard, Users
+│
+├── Sidebar (Secondary Navigation)
+│   └── Links: Dashboard, Users, Login
+│
+└── Main Content Area
+    └── Page Content (children)
+    └── Uses: Button, Card, InputField
+```
+
+### Key Components
+
+#### 1. **Header Component**
+Located in: `src/components/layout/Header.tsx`
+
+**Purpose**: Main navigation bar at the top of every page
+
+**Features**:
+- Responsive navigation links
+- Brand/logo display (FoodONtracks)
+- ARIA labels for accessibility
+- Hover effects and transitions
+
+**Usage**:
+```typescript
+import { Header } from '@/components';
+
+<Header />
+```
+
+#### 2. **Sidebar Component**
+Located in: `src/components/layout/Sidebar.tsx`
+
+**Purpose**: Secondary navigation with contextual links
+
+**Features**:
+- Navigation links with icons
+- Data-driven link list
+- Version footer display
+- Hover states for better UX
+
+**Usage**:
+```typescript
+import { Sidebar } from '@/components';
+
+<Sidebar />
+```
+
+#### 3. **LayoutWrapper Component**
+Located in: `src/components/layout/LayoutWrapper.tsx`
+
+**Purpose**: Composite layout combining Header, Sidebar, and main content
+
+**Features**:
+- Responsive two-column layout (Header + Sidebar + Content)
+- Flexible content area
+- Consistent spacing and padding
+
+**Usage**:
+```typescript
+import { LayoutWrapper } from '@/components';
+
+<LayoutWrapper>
+  {children}
+</LayoutWrapper>
+```
+
+#### 4. **Button Component**
+Located in: `src/components/ui/Button.tsx`
+
+**Purpose**: Reusable button with multiple variants
+
+**Props**:
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `label` | `string` | Required | Button text |
+| `onClick` | `function` | Optional | Click handler |
+| `variant` | `'primary' \| 'secondary' \| 'danger'` | `'primary'` | Button style |
+| `disabled` | `boolean` | `false` | Disabled state |
+| `type` | `'button' \| 'submit' \| 'reset'` | `'button'` | HTML button type |
+
+**Variants**:
+- **Primary** (blue) — Main action buttons
+- **Secondary** (gray) — Alternative actions
+- **Danger** (red) — Destructive actions
+
+**Usage**:
+```typescript
+import { Button } from '@/components';
+
+<Button 
+  label="Click Me" 
+  onClick={() => alert('Clicked!')} 
+  variant="primary" 
+/>
+```
+
+#### 5. **Card Component**
+Located in: `src/components/ui/Card.tsx`
+
+**Purpose**: Container for grouped content with consistent styling
+
+**Props**:
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `title` | `string` | Optional | Card heading |
+| `children` | `ReactNode` | Required | Card content |
+| `variant` | `'default' \| 'bordered' \| 'elevated'` | `'default'` | Card style |
+
+**Variants**:
+- **Default** — Simple bordered card
+- **Bordered** — Thick border card
+- **Elevated** — Shadow-based card
+
+**Usage**:
+```typescript
+import { Card } from '@/components';
+
+<Card title="User Details" variant="elevated">
+  <p>Your content here</p>
+</Card>
+```
+
+#### 6. **InputField Component**
+Located in: `src/components/ui/InputField.tsx`
+
+**Purpose**: Reusable text input or textarea with validation
+
+**Props**:
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `label` | `string` | Optional | Input label |
+| `type` | `'text' \| 'email' \| 'password' \| 'textarea'` | `'text'` | Input type |
+| `placeholder` | `string` | Optional | Placeholder text |
+| `value` | `string` | Optional | Current value |
+| `onChange` | `function` | Optional | Change handler |
+| `required` | `boolean` | `false` | Required field |
+| `error` | `string` | Optional | Error message |
+
+**Usage**:
+```typescript
+import { InputField } from '@/components';
+
+<InputField 
+  label="Email" 
+  type="email" 
+  placeholder="your@email.com"
+  required
+/>
+```
+
+### Barrel Exports
+
+The `src/components/index.ts` file provides convenient barrel exports for cleaner imports:
+
+```typescript
+// Before (long import)
+import Header from '../components/layout/Header';
+import Button from '../components/ui/Button';
+
+// After (clean import)
+import { Header, Button } from '@/components';
+```
+
+### Design Consistency
+
+All components follow these principles:
+
+1. **Consistent Spacing**: Tailwind's spacing scale (4px units)
+2. **Color Palette**:
+   - Primary: Blue (#2563EB)
+   - Secondary: Gray (#6B7280)
+   - Danger: Red (#DC2626)
+   - Background: White (#FFFFFF)
+
+3. **Typography**:
+   - Headings: Bold, size varies (lg, 2xl)
+   - Body: Regular, size-base
+   - Labels: Small, font-medium
+
+4. **Accessibility**:
+   - ARIA labels for landmarks
+   - Proper semantic HTML
+   - Keyboard navigation support
+   - Color contrast compliance
+
+### Component Reusability Benefits
+
+| Benefit | Impact |
+|---------|--------|
+| **DRY Principle** | Change once, update everywhere |
+| **Consistency** | Unified look and feel across app |
+| **Maintenance** | Easier bug fixes and updates |
+| **Scalability** | Quick feature additions |
+| **Accessibility** | Standardized ARIA patterns |
+| **Performance** | Component-level code splitting |
+
+### Example: Building a Page with Components
+
+```typescript
+// pages/dashboard/page.tsx
+'use client';
+
+import { Card, Button, InputField } from '@/components';
+import { useState } from 'react';
+
+export default function Dashboard() {
+  const [email, setEmail] = useState('');
+
+  return (
+    <div className="space-y-6">
+      {/* Page Title */}
+      <h1 className="text-3xl font-bold">Dashboard</h1>
+
+      {/* Using Card Component */}
+      <Card title="User Settings" variant="elevated">
+        <div className="space-y-4">
+          {/* Using InputField Component */}
+          <InputField
+            label="Email Address"
+            type="email"
+            value={email}
+            onChange={setEmail}
+            placeholder="your@email.com"
+            required
+          />
+
+          {/* Using Button Component */}
+          <div className="flex gap-3">
+            <Button label="Save" variant="primary" />
+            <Button label="Cancel" variant="secondary" />
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+```
+
+### Testing Components
+
+To verify components work correctly:
+
+```bash
+# Start dev server
+npm run dev
+
+# Visit http://localhost:3000/dashboard
+# All components should render with:
+# ✓ Header visible at top
+# ✓ Sidebar visible on left
+# ✓ Content in main area
+# ✓ Buttons interactive
+# ✓ Forms responsive
+```
+
+### Visual Component Reference
+
+```
+┌─────────────────────────────────────┐
+│       Header (Navigation)           │  ← Header Component
+├──────────────┬──────────────────────┤
+│              │                      │
+│   Sidebar    │   Main Content      │  ← Sidebar + Main Area
+│   (Nav)      │  (with Card,         │     (via LayoutWrapper)
+│              │   Button, Input)     │
+│              │                      │
+│              ├──────────────────────┤
+│              │  Card Component      │
+│              │  ┌──────────────────┐│
+│              │  │ Button: Primary  ││
+│              │  │ Button: Secondary││
+│              │  │ Input: Email     ││
+│              │  └──────────────────┘│
+│              │                      │
+└──────────────┴──────────────────────┘
+```
+
+---
+
 ## ⚙️ Setup Instructions
 
 ### 1️⃣ Install dependencies
