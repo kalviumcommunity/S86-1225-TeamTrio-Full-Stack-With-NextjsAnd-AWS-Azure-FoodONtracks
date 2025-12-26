@@ -19,15 +19,17 @@ export default function FormInput({
 }: FormInputProps) {
   return (
     <div className="mb-3">
-      <label className="block mb-1 font-medium text-gray-700">{label}</label>
+      <label className="block mb-1 font-medium text-gray-700 dark:text-gray-300">
+        {label}
+      </label>
       <input
         type={type}
         {...register(name)}
         placeholder={placeholder}
-        className={`w-full border p-2 rounded focus:outline-none focus:ring-2 ${
+        className={`w-full border p-2 rounded focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
           error
             ? "border-red-500 focus:ring-red-500"
-            : "border-gray-300 focus:ring-blue-500"
+            : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
         }`}
         aria-invalid={!!error}
       />

@@ -7,6 +7,17 @@ Each food batch receives a unique Batch ID, and suppliers, kitchens, vendors, an
 
 ## 🆕 Latest Features
 
+### 🎨 Responsive Design & Dark Mode
+✅ **Tailwind CSS responsive layouts with light/dark theme support**
+- **Custom Theme Configuration**: Brand colors and responsive breakpoints
+- **Dark Mode Toggle**: Persistent theme preference with localStorage
+- **Responsive Grid Layouts**: Adapts from mobile (1 col) to desktop (4 cols)
+- **Accessible Theme Switching**: Keyboard navigation and ARIA support
+- **WCAG Compliant**: Proper color contrast in both themes
+
+📚 **Demo**: Visit `/responsive-demo` to see responsive layouts and theme toggle
+🧪 **Components**: [ThemeToggle](foodontracks/src/components/ui/ThemeToggle.tsx), [ThemeContext](foodontracks/src/context/ThemeContext.tsx)
+
 ### 🎨 User Feedback System (Toast, Modal, Loader)
 ✅ **Comprehensive user feedback implementation**
 - **Toast Notifications**: Instant, non-intrusive feedback for user actions

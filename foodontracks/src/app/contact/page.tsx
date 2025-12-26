@@ -34,18 +34,18 @@ export default function ContactForm() {
   };
 
   return (
-    <main className="min-h-screen p-6 flex flex-col items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100">
+    <main className="min-h-screen p-6 flex flex-col items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-gray-800">
       <div className="w-full max-w-2xl">
-        <h1 className="text-3xl font-bold mb-2 text-center text-gray-800">
+        <h1 className="text-3xl font-bold mb-2 text-center text-gray-800 dark:text-white">
           Contact Us
         </h1>
-        <p className="text-gray-600 text-center mb-6">
+        <p className="text-gray-600 dark:text-gray-300 text-center mb-6">
           Have questions? We&apos;d love to hear from you!
         </p>
 
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="bg-white p-8 border border-gray-200 rounded-xl shadow-lg"
+          className="bg-white dark:bg-gray-800 p-8 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg"
         >
           {/* Using Reusable FormInput Component */}
           <FormInput

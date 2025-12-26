@@ -32,22 +32,22 @@ export default function SignupPage() {
   };
 
   return (
-    <main className="min-h-screen p-6 flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+    <main className="min-h-screen p-6 flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       <div className="w-full max-w-md">
-        <h1 className="text-3xl font-bold mb-2 text-center text-gray-800">
+        <h1 className="text-3xl font-bold mb-2 text-center text-gray-800 dark:text-white">
           Create Account
         </h1>
-        <p className="text-gray-600 text-center mb-6">
+        <p className="text-gray-600 dark:text-gray-300 text-center mb-6">
           Sign up to get started with FoodOnTracks
         </p>
 
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="flex flex-col gap-4 bg-white p-8 border border-gray-200 rounded-xl shadow-lg"
+          className="flex flex-col gap-4 bg-white dark:bg-gray-800 p-8 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg"
         >
           {/* Name Field */}
           <div>
-            <label className="block mb-2 font-medium text-gray-700">
+            <label className="block mb-2 font-medium text-gray-700 dark:text-gray-300">
               Full Name
             </label>
             <input
