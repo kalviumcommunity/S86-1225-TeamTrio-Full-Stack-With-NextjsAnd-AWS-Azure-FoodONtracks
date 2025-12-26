@@ -1,74 +1,57 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { sendSuccess, sendError } from "@/lib/responseHandler";
-import { ERROR_CODES } from "@/lib/errorCodes";
-import { createMenuItemSchema } from "@/lib/schemas/menuItemSchema";
-import { validateData } from "@/lib/validationUtils";
 
-// GET /api/menu-items - Get all menu items with pagination
-export async function GET(req: NextRequest) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const page = Number(searchParams.get("page")) || 1;
-    const limit = Number(searchParams.get("limit")) || 10;
-    const restaurantId = searchParams.get("restaurantId");
-    const category = searchParams.get("category");
-    const isAvailable = searchParams.get("isAvailable");
-    const maxPrice = searchParams.get("maxPrice");
+// Mock menu items data for demo purposes
+const mockMenuItems = [
+  {
+    id: 1,
+    name: "Margherita Pizza",
+    description: "Classic tomato and mozzarella",
+    price: 12.99,
+    category: "Pizza",
+    available: true,
+    restaurantId: 1,
+  },
+  {
+    id: 2,
+    name: "Chicken Burger",
+    description: "Grilled chicken with lettuce and tomato",
+    price: 9.99,
+    category: "Burgers",
+    available: true,
+    restaurantId: 1,
+  },
+  {
+    id: 3,
+    name: "Caesar Salad",
+    description: "Fresh romaine with caesar dressing",
+    price: 8.5,
+    category: "Salads",
+    available: true,
+    restaurantId: 1,
+  },
+  {
+    id: 4,
+    name: "Pasta Carbonara",
+    description: "Creamy pasta with bacon",
+    price: 14.99,
+    category: "Pasta",
+    available: false,
+    restaurantId: 1,
+  },
+];
 
-    const skip = (page - 1) * limit;
+// GET /api/menu-items - Get all menu items
+export async function GET() {
+  // Simulate network delay
+  await new Promise((resolve) => setTimeout(resolve, 200));
 
-    const where: {
-      restaurantId?: number;
-      category?: { contains: string; mode: "insensitive" };
-      isAvailable?: boolean;
-      price?: { lte: number };
-    } = {};
-    if (restaurantId) where.restaurantId = parseInt(restaurantId);
-    if (category) where.category = { contains: category, mode: "insensitive" };
-    if (isAvailable) where.isAvailable = isAvailable === "true";
-    if (maxPrice) where.price = { lte: parseFloat(maxPrice) };
+  console.log("📡 Fetching menu items from mock data");
 
-    const [menuItems, total] = await Promise.all([
-      prisma.menuItem.findMany({
-        where,
-        skip,
-        take: limit,
-        include: {
-          restaurant: {
-            select: {
-              id: true,
-              name: true,
-              city: true,
-            },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      }),
-      prisma.menuItem.count({ where }),
-    ]);
-
-    return sendSuccess(
-      {
-        menuItems,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-        },
-      },
-      "Menu items fetched successfully"
-    );
-  } catch (error) {
-    console.error("Error fetching menu items:", error);
-    return sendError(
-      "Failed to fetch menu items",
-      ERROR_CODES.DATABASE_FAILURE,
-      500,
-      error
-    );
-  }
+  return NextResponse.json({
+    data: mockMenuItems,
+    total: mockMenuItems.length,
+    timestamp: new Date().toISOString(),
+  });
 }
 
 // POST /api/menu-items - Create a new menu item
@@ -76,58 +59,35 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    // Validate input using Zod schema
-    const validationResult = validateData(createMenuItemSchema, body);
-    if (!validationResult.success) {
-      return NextResponse.json(validationResult, { status: 400 });
-    }
+    // Simulate network delay
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
-    const {
-      restaurantId,
-      name,
-      description,
-      price,
-      category,
-      imageUrl,
-      preparationTime,
-      stock,
-    } = validationResult.data;
+    const newItem = {
+      id: Date.now(),
+      name: body.name,
+      description: body.description || "",
+      price: parseFloat(body.price),
+      category: body.category || "New",
+      available: body.available !== undefined ? body.available : true,
+      restaurantId: body.restaurantId || 1,
+    };
 
-    // Verify restaurant exists
-    const restaurant = await prisma.restaurant.findUnique({
-      where: { id: restaurantId },
-    });
+    mockMenuItems.push(newItem);
 
-    if (!restaurant) {
-      return sendError(
-        "Restaurant not found",
-        ERROR_CODES.RESTAURANT_NOT_FOUND,
-        404
-      );
-    }
+    console.log("✅ Created new menu item:", newItem);
 
-    // Create menu item
-    const menuItem = await prisma.menuItem.create({
-      data: {
-        restaurantId,
-        name,
-        description,
-        price,
-        category,
-        imageUrl,
-        preparationTime,
-        stock,
+    return NextResponse.json(
+      {
+        data: newItem,
+        message: "Menu item created successfully",
       },
-    });
-
-    return sendSuccess(menuItem, "Menu item created successfully", 201);
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Error creating menu item:", error);
-    return sendError(
-      "Failed to create menu item",
-      ERROR_CODES.DATABASE_FAILURE,
-      500,
-      error
+    return NextResponse.json(
+      { error: "Failed to create menu item" },
+      { status: 500 }
     );
   }
 }

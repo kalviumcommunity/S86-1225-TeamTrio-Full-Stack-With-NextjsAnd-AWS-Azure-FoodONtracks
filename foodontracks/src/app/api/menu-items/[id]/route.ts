@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { updateMenuItemSchema } from "@/lib/schemas/menuItemSchema";
-import { validateData } from "@/lib/validationUtils";
+
+// Mock implementation for SWR demo
 
 // GET /api/menu-items/[id]
 export async function GET(
@@ -12,6 +11,9 @@ export async function GET(
     const { id } = await params;
     const menuItemId = parseInt(id);
 
+    // Simulate network delay
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
     if (isNaN(menuItemId)) {
       return NextResponse.json(
         { error: "Invalid menu item ID" },
@@ -19,25 +21,58 @@ export async function GET(
       );
     }
 
-    const menuItem = await prisma.menuItem.findUnique({
-      where: { id: menuItemId },
-      include: {
-        restaurant: true,
-      },
-    });
+    // Mock data
+    const mockItem = {
+      id: menuItemId,
+      name: "Sample Item",
+      description: "Sample description",
+      price: 10.99,
+      category: "Sample",
+      available: true,
+    };
 
-    if (!menuItem) {
-      return NextResponse.json(
-        { error: "Menu item not found" },
-        { status: 404 }
-      );
-    }
+    console.log("📡 Fetching menu item:", menuItemId);
 
-    return NextResponse.json({ data: menuItem });
+    return NextResponse.json({ data: mockItem });
   } catch (error) {
     console.error("Error fetching menu item:", error);
     return NextResponse.json(
       { error: "Failed to fetch menu item" },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH /api/menu-items/[id]
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const menuItemId = parseInt(id);
+    const body = await req.json();
+
+    // Simulate network delay
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    if (isNaN(menuItemId)) {
+      return NextResponse.json(
+        { error: "Invalid menu item ID" },
+        { status: 400 }
+      );
+    }
+
+    console.log("🔄 Updating menu item:", menuItemId, body);
+
+    return NextResponse.json({
+      message: "Menu item updated successfully",
+      data: { id: menuItemId, ...body },
+    });
+  } catch (error) {
+    console.error("Error updating menu item:", error);
+    return NextResponse.json(
+      { error: "Failed to update menu item" },
       { status: 500 }
     );
   }
@@ -51,6 +86,10 @@ export async function PUT(
   try {
     const { id } = await params;
     const menuItemId = parseInt(id);
+    const body = await req.json();
+
+    // Simulate network delay
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     if (isNaN(menuItemId)) {
       return NextResponse.json(
@@ -59,35 +98,11 @@ export async function PUT(
       );
     }
 
-    const body = await req.json();
-
-    // Validate input using Zod schema
-    const validationResult = validateData(updateMenuItemSchema, body);
-    if (!validationResult.success) {
-      return NextResponse.json(validationResult, { status: 400 });
-    }
-
-    // Check if menu item exists
-    const existingMenuItem = await prisma.menuItem.findUnique({
-      where: { id: menuItemId },
-    });
-
-    if (!existingMenuItem) {
-      return NextResponse.json(
-        { error: "Menu item not found" },
-        { status: 404 }
-      );
-    }
-
-    // Update menu item
-    const menuItem = await prisma.menuItem.update({
-      where: { id: menuItemId },
-      data: validationResult.data,
-    });
+    console.log("🔄 Updating menu item (PUT):", menuItemId, body);
 
     return NextResponse.json({
       message: "Menu item updated successfully",
-      data: menuItem,
+      data: { id: menuItemId, ...body },
     });
   } catch (error) {
     console.error("Error updating menu item:", error);
@@ -107,6 +122,9 @@ export async function DELETE(
     const { id } = await params;
     const menuItemId = parseInt(id);
 
+    // Simulate network delay
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
     if (isNaN(menuItemId)) {
       return NextResponse.json(
         { error: "Invalid menu item ID" },
@@ -114,22 +132,7 @@ export async function DELETE(
       );
     }
 
-    // Check if menu item exists
-    const existingMenuItem = await prisma.menuItem.findUnique({
-      where: { id: menuItemId },
-    });
-
-    if (!existingMenuItem) {
-      return NextResponse.json(
-        { error: "Menu item not found" },
-        { status: 404 }
-      );
-    }
-
-    // Delete menu item
-    await prisma.menuItem.delete({
-      where: { id: menuItemId },
-    });
+    console.log("🗑️ Deleting menu item:", menuItemId);
 
     return NextResponse.json({
       message: "Menu item deleted successfully",
