@@ -2196,3 +2196,363 @@ const available = await prisma.deliveryPerson.findMany({
 
 ---
 
+## 🔐 HTTPS Enforcement and Security Headers
+
+### Overview
+
+FoodONtracks implements comprehensive security headers to protect against common web attacks including Man-in-the-Middle (MITM), Cross-Site Scripting (XSS), and data exfiltration. All requests are enforced over HTTPS in production environments.
+
+**Key Security Features:**
+- ✅ HTTPS-only communication (HTTP to HTTPS redirect)
+- ✅ HSTS (HTTP Strict Transport Security) enforcement
+- ✅ Content Security Policy (CSP) to prevent XSS attacks
+- ✅ CORS configuration for API security
+- ✅ Additional protective headers (X-Frame-Options, X-Content-Type-Options, etc.)
+
+### Security Headers Configuration
+
+All security headers are configured in [next.config.ts](foodontracks/next.config.ts) and applied globally to every HTTP response.
+
+#### 1. HSTS (HTTP Strict Transport Security)
+
+**Header:** `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`
+
+**Purpose:** Forces browsers to always use HTTPS for your domain
+
+**Configuration Details:**
+- `max-age=63072000` → 2 years validity period
+- `includeSubDomains` → Applies to all subdomains
+- `preload` → Domain eligible for browser HSTS preload list
+
+**Protection Against:** Man-in-the-Middle (MITM) attacks, SSL stripping
+
+```typescript
+// next.config.ts
+{
+  key: 'Strict-Transport-Security',
+  value: 'max-age=63072000; includeSubDomains; preload',
+}
+```
+
+#### 2. Content Security Policy (CSP)
+
+**Header:** `Content-Security-Policy: default-src 'self'; script-src 'self' ...`
+
+**Purpose:** Restricts which sources of scripts, styles, images, and other resources are trusted
+
+**Configuration:**
+```
+default-src 'self'                           → Only same-origin resources by default
+script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://apis.google.com
+                                             → Allow scripts from self and trusted CDNs
+style-src 'self' 'unsafe-inline' https://fonts.googleapis.com
+                                             → Allow styles from self and Google Fonts
+font-src 'self' https://fonts.gstatic.com data:
+                                             → Allow fonts from self and data URIs
+img-src 'self' data: https:                 → Allow images from self, data URIs, and HTTPS
+connect-src 'self' https: http://localhost:*
+                                             → Allow API calls to self, HTTPS, and localhost
+frame-ancestors 'self'                       → Prevent clickjacking
+base-uri 'self'                             → Prevent base tag injections
+form-action 'self'                          → Only allow form submissions to self
+```
+
+**Protection Against:** Cross-Site Scripting (XSS), Data exfiltration, Injection attacks
+
+#### 3. X-Content-Type-Options
+
+**Header:** `X-Content-Type-Options: nosniff`
+
+**Purpose:** Prevents browsers from MIME-sniffing responses
+
+**Protection Against:** MIME-type confusion attacks
+
+#### 4. X-Frame-Options
+
+**Header:** `X-Frame-Options: SAMEORIGIN`
+
+**Purpose:** Prevents clickjacking by restricting which sites can frame your content
+
+**Protection Against:** Clickjacking attacks
+
+#### 5. Referrer-Policy
+
+**Header:** `Referrer-Policy: strict-origin-when-cross-origin`
+
+**Purpose:** Controls how much referrer information is shared
+
+**Protection Against:** Information leakage, privacy violations
+
+#### 6. Permissions-Policy
+
+**Header:** Restricts access to sensitive browser features
+
+```
+camera=()                    → Disable camera access
+microphone=()               → Disable microphone access
+geolocation=(self)          → Only allow geolocation from same origin
+usb=()                      → Disable USB access
+magnetometer=()             → Disable magnetometer
+gyroscope=()                → Disable gyroscope
+accelerometer=()            → Disable accelerometer
+```
+
+### HTTPS Enforcement
+
+Automatic redirection of HTTP requests to HTTPS in production:
+
+```typescript
+// src/app/middleware.ts
+if (
+  process.env.NODE_ENV === "production" &&
+  req.headers.get("x-forwarded-proto") !== "https" &&
+  !req.url.includes("localhost")
+) {
+  const httpsUrl = new URL(req.url);
+  httpsUrl.protocol = "https:";
+  return NextResponse.redirect(httpsUrl, { status: 308 });
+}
+```
+
+### CORS Configuration
+
+Secure CORS setup for API routes using the [corsHeaders.ts](foodontracks/src/lib/corsHeaders.ts) utility:
+
+**Features:**
+- Environment-based origin validation
+- Production: Only allow specific trusted domains
+- Development: Allow localhost variants for testing
+- Prevents unauthorized cross-origin API access
+
+**Usage in API Routes:**
+
+```typescript
+import { setCORSHeaders, handleCORSPreflight } from '@/lib/corsHeaders';
+
+export async function OPTIONS(req: NextRequest) {
+  const origin = req.headers.get('origin');
+  return handleCORSPreflight(origin);
+}
+
+export async function GET(req: NextRequest) {
+  const origin = req.headers.get('origin');
+  const corsHeaders = setCORSHeaders(origin);
+  
+  const response = NextResponse.json(data);
+  Object.entries(corsHeaders).forEach(([key, value]) => {
+    response.headers.set(key, value);
+  });
+  
+  return response;
+}
+```
+
+**Allowed Origins:**
+- Production: `process.env.NEXT_PUBLIC_APP_URL` and `process.env.ALLOWED_ORIGINS`
+- Development:
+  - `http://localhost:3000`
+  - `http://localhost:3001`
+  - `http://127.0.0.1:3000`
+  - `http://127.0.0.1:3001`
+  - `http://localhost:5000`
+  - `http://localhost:8000`
+
+### Security Headers Utilities
+
+#### [securityHeaders.ts](foodontracks/src/lib/securityHeaders.ts)
+
+Provides helper functions to apply security headers to API responses:
+
+```typescript
+// Apply headers to any NextResponse
+import { applySecurityHeaders, secureJsonResponse } from '@/lib/securityHeaders';
+
+// Method 1: Apply to existing response
+const response = NextResponse.json(data);
+applySecurityHeaders(response);
+
+// Method 2: Create secure response directly
+const secureResponse = secureJsonResponse(data);
+
+// Method 3: Create secure error response
+const errorResponse = secureErrorResponse('Unauthorized', 401);
+```
+
+### Testing Security Headers
+
+#### Automated Testing
+
+Run the security headers test script:
+
+```bash
+# Test against localhost
+npm run test:security
+
+# Test against specific URL
+npx ts-node scripts/test-security-headers.ts https://foodontracks.com
+```
+
+**Test Output Example:**
+```
+🔒 Testing Security Headers for: http://localhost:3000
+
+📊 Status Code: 200
+
+✅ [PASS] HSTS (HTTP Strict Transport Security)
+   Value: max-age=63072000; includeSubDomains; preload
+
+✅ [PASS] Content Security Policy
+   Value: default-src 'self'; script-src 'self' ...
+
+✅ [PASS] X-Content-Type-Options
+   Value: nosniff
+
+✅ [PASS] X-Frame-Options
+   Value: SAMEORIGIN
+
+✅ [PASS] X-XSS-Protection
+   Value: 1; mode=block
+
+✅ [PASS] Referrer-Policy
+   Value: strict-origin-when-cross-origin
+
+📈 Summary: 7/7 tests passed
+
+✨ All security headers are properly configured!
+```
+
+#### Manual Browser Inspection
+
+1. **Open DevTools:** `F12` or `Right-click → Inspect`
+2. **Navigate to Network Tab**
+3. **Reload page**
+4. **Click on the first request**
+5. **Scroll to Response Headers section**
+6. **Verify headers are present:**
+   - `strict-transport-security`
+   - `content-security-policy`
+   - `x-content-type-options`
+   - `x-frame-options`
+   - `referrer-policy`
+
+#### Online Security Audits
+
+**Mozilla Observatory:** https://observatory.mozilla.org
+- Scan your deployed application
+- Receive detailed security report
+- Get recommendations for improvements
+- Grade: A+ to F
+
+**Security Headers:** https://securityheaders.com
+- Quick header validation
+- Visual summary of configuration
+- Best practices guidance
+
+**Example Scan Results:**
+```
+HTTPS enforced:          ✅ Pass
+HSTS enabled:            ✅ Pass
+CSP configured:          ✅ Pass
+X-Frame-Options set:     ✅ Pass
+X-Content-Type-Options:  ✅ Pass
+Referrer-Policy set:     ✅ Pass
+```
+
+### Impact on Third-Party Integrations
+
+#### Analytics (Google Analytics, Mixpanel)
+- **Impact:** Medium
+- **Solution:** Whitelist analytics domains in CSP `connect-src`
+- **Example:** `connect-src 'self' https://www.google-analytics.com https://api.mixpanel.com`
+
+#### External APIs (Payment, Shipping)
+- **Impact:** Medium
+- **Solution:** Whitelist API domains in CSP `connect-src`
+- **Verify:** Test API calls work after CSP implementation
+
+#### Font Services (Google Fonts, TypeKit)
+- **Impact:** Low
+- **Solution:** Already whitelisted in CSP `font-src`
+- **Status:** ✅ Configured
+
+#### Maps & Location Services
+- **Impact:** Medium
+- **Solution:** Whitelist map providers and enable geolocation in Permissions-Policy
+- **Example:** `geolocation=(self)`
+
+#### Video Embed (YouTube, Vimeo)
+- **Impact:** Medium
+- **Solution:** Whitelist in CSP `frame-src` if embedded
+- **Example:** `frame-src 'self' https://www.youtube.com`
+
+### Security Best Practices
+
+1. **HTTPS Everywhere**
+   - Always use HTTPS in production
+   - Use HSTS preload list submission
+   - Renew SSL certificates before expiration
+
+2. **CSP Maintenance**
+   - Regularly audit CSP violations via Content-Security-Policy-Report-Only header
+   - Test thoroughly before deploying CSP changes
+   - Use nonces for inline scripts instead of 'unsafe-inline'
+
+3. **CORS Configuration**
+   - Never use `Access-Control-Allow-Origin: *` with credentials
+   - Explicitly whitelist trusted origins
+   - Validate origins on both client and server
+
+4. **Header Updates**
+   - Review security headers quarterly
+   - Update HSTS max-age periodically
+   - Monitor security advisories for new recommendations
+
+5. **Monitoring**
+   - Log CSP violations
+   - Monitor failed CORS requests
+   - Set up alerts for unusual patterns
+
+### Configuration Files Reference
+
+| File | Purpose | Location |
+|------|---------|----------|
+| next.config.ts | Global security headers | [foodontracks/next.config.ts](foodontracks/next.config.ts) |
+| middleware.ts | HTTPS enforcement & auth | [foodontracks/src/app/middleware.ts](foodontracks/src/app/middleware.ts) |
+| corsHeaders.ts | CORS utility functions | [foodontracks/src/lib/corsHeaders.ts](foodontracks/src/lib/corsHeaders.ts) |
+| securityHeaders.ts | Security headers helpers | [foodontracks/src/lib/securityHeaders.ts](foodontracks/src/lib/securityHeaders.ts) |
+| test-security-headers.ts | Testing script | [foodontracks/scripts/test-security-headers.ts](foodontracks/scripts/test-security-headers.ts) |
+
+### Reflection
+
+#### Why HTTPS Enforcement Matters
+- **Data Protection:** Encrypts all data in transit
+- **User Trust:** Browsers show security indicators
+- **SEO:** Google prioritizes HTTPS sites
+- **Regulatory:** Required for GDPR, PCI-DSS compliance
+- **Business:** Reduces risk of data breaches
+
+#### How CSP Protects Your Users
+- **XSS Prevention:** Inline scripts are blocked by default
+- **Data Exfiltration:** Restricts where data can be sent
+- **Malware:** Prevents injection of malicious code
+- **Incident Response:** CSP-Report-Only mode monitors violations
+- **Defense in Depth:** Multiple layers of protection
+
+#### Security vs Flexibility Trade-offs
+| Aspect | Strict CSP | Flexible CSP | Approach Used |
+|--------|-----------|-------------|---------------|
+| Security | Very High | Lower | Strict by default |
+| 3rd-party Integrations | Requires whitelist | Easy to integrate | Whitelist trusted domains |
+| Development | Some friction | Fast | localhost excluded |
+| Maintenance | Ongoing reviews | Less frequent | Regular audits |
+
+#### CORS Security Strategy
+- **Production:** Whitelist specific origins only
+- **Development:** Allow localhost for testing
+- **Never:** Use `*` origin in production
+- **Always:** Validate origins server-side
+- **Monitor:** Log and alert on CORS rejections
+
+---
+
+

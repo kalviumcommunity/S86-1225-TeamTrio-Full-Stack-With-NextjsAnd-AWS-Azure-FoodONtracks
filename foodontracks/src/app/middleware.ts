@@ -6,9 +6,10 @@ const ACCESS_TOKEN_SECRET =
   process.env.JWT_SECRET || "dev_jwt_secret_change_me";
 
 /**
- * Next.js Middleware for route protection
+ * Next.js Middleware for route protection and HTTPS enforcement
  *
  * Features:
+ * - Enforces HTTPS in production environments
  * - Validates access tokens for protected routes
  * - Handles both API routes and page routes
  * - Provides user context to downstream handlers
@@ -16,6 +17,17 @@ const ACCESS_TOKEN_SECRET =
  */
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // HTTPS Enforcement in production
+  if (
+    process.env.NODE_ENV === "production" &&
+    req.headers.get("x-forwarded-proto") !== "https" &&
+    !req.url.includes("localhost")
+  ) {
+    const httpsUrl = new URL(req.url);
+    httpsUrl.protocol = "https:";
+    return NextResponse.redirect(httpsUrl, { status: 308 });
+  }
 
   // Public routes — anyone can access
   if (
