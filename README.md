@@ -60,6 +60,35 @@ Each food batch receives a unique Batch ID, and suppliers, kitchens, vendors, an
 
 🧪 **Testing**: Run `.\foodontracks\test-file-upload.ps1`
 
+### ⏳ Loading Skeletons & Error Boundaries
+✅ **Graceful handling of loading and error states for optimal UX**
+- **Loading Skeletons**: Shimmer effects that match content structure
+- **Error Boundaries**: User-friendly error messages with retry functionality
+- **Network Resilience**: Handles slow connections and failures gracefully
+- **Responsive States**: Dark mode support for all loading and error UI
+- **Accessible**: ARIA labels and keyboard navigation support
+
+**Why This Matters**:
+- **User Trust**: Users never see blank screens or wonder what's happening
+- **Better UX**: Visual feedback during data fetches reduces perceived wait time
+- **Error Recovery**: "Try Again" buttons let users recover from failures without page refresh
+- **Professional Feel**: Skeleton loaders are more sophisticated than spinners
+
+**Implementation**:
+- 📄 `loading.tsx` files in route folders show shimmer skeletons during data fetching
+- 📄 `error.tsx` files catch errors and display retry-friendly UI
+- 🔧 Test utilities in `lib/testUtils.ts` for simulating states
+- 📖 Complete testing guide in `lib/TESTING_GUIDE.ts`
+
+**Routes with Loading & Error States**:
+- `/users` - User list with card skeletons
+- `/dashboard` - Dashboard with stats and chart skeletons  
+- `/users/[id]` - User detail page with profile skeleton
+- `/swr-demo/users` - SWR demo with data fetching states
+
+🧪 **Testing**: See [TESTING_GUIDE.md](foodontracks/src/app/lib/TESTING_GUIDE.md) for complete testing instructions
+📚 **Demo**: Use Chrome DevTools Network throttling (Slow 3G) to see loading states
+
 ---
 
 ## 📁 Folder Structure (Sprint-1)
