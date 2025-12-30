@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createReviewSchema } from "@/lib/schemas/reviewSchema";
 import { validateData } from "@/lib/validationUtils";
+import { sanitizeStrictInput } from "@/utils/sanitize";
 
 // GET /api/reviews - Get all reviews with pagination
 export async function GET(req: NextRequest) {
@@ -83,7 +84,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(validationResult, { status: 400 });
     }
 
-    const { userId, restaurantId, orderId, rating, comment } = validationResult.data;
+    const { userId, restaurantId, orderId, rating, comment } =
+      validationResult.data;
+
+    // Sanitize comment to prevent XSS attacks
+    const sanitizedComment = sanitizeStrictInput(comment || "");
 
     // Check if order exists and is delivered
     const order = await prisma.order.findUnique({
@@ -121,7 +126,7 @@ export async function POST(req: NextRequest) {
           restaurantId,
           orderId,
           rating,
-          comment,
+          comment: sanitizedComment,
         },
       });
 

@@ -4,7 +4,11 @@ import { sendSuccess, sendError } from "@/lib/responseHandler";
 import { ERROR_CODES } from "@/lib/errorCodes";
 import { createRestaurantSchema } from "@/lib/schemas/restaurantSchema";
 import { validateData } from "@/lib/validationUtils";
-import { validateData } from "@/lib/validationUtils";
+import {
+  sanitizeStrictInput,
+  sanitizeEmail,
+  sanitizePhoneNumber,
+} from "@/utils/sanitize";
 
 // GET /api/restaurants - Get all restaurants with pagination
 export async function GET(req: NextRequest) {
@@ -103,6 +107,15 @@ export async function POST(req: NextRequest) {
       zipCode,
     } = validationResult.data;
 
+    // Sanitize text inputs to prevent XSS
+    const sanitizedName = sanitizeStrictInput(name);
+    const sanitizedEmail = sanitizeEmail(email);
+    const sanitizedPhone = sanitizePhoneNumber(phoneNumber);
+    const sanitizedDescription = sanitizeStrictInput(description || "");
+    const sanitizedAddress = sanitizeStrictInput(address);
+    const sanitizedCity = sanitizeStrictInput(city);
+    const sanitizedState = sanitizeStrictInput(state);
+
     // Check if restaurant already exists
     const existingRestaurant = await prisma.restaurant.findFirst({
       where: {
@@ -121,13 +134,13 @@ export async function POST(req: NextRequest) {
     // Create restaurant
     const restaurant = await prisma.restaurant.create({
       data: {
-        name,
-        email,
-        phoneNumber,
-        description,
-        address,
-        city,
-        state,
+        name: sanitizedName,
+        email: sanitizedEmail,
+        phoneNumber: sanitizedPhone,
+        description: sanitizedDescription,
+        address: sanitizedAddress,
+        city: sanitizedCity,
+        state: sanitizedState,
         zipCode,
       },
     });

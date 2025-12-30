@@ -12,6 +12,11 @@ import { NextResponse } from "next/server";
 import { withRbac, AuthenticatedRequest } from "@/middleware/rbac";
 import { prisma } from "@/app/lib/prisma";
 import bcrypt from "bcryptjs";
+import {
+  sanitizeStrictInput,
+  sanitizeEmail,
+  sanitizePhoneNumber,
+} from "@/utils/sanitize";
 
 /**
  * GET /api/users
@@ -98,8 +103,15 @@ export const POST = withRbac(
       const body = await request.json();
       const { name, email, phoneNumber, password, role } = body;
 
+      // Sanitize text inputs to prevent XSS
+      const sanitizedName = sanitizeStrictInput(name || "");
+      const sanitizedEmail = sanitizeEmail(email || "");
+      const sanitizedPhone = phoneNumber
+        ? sanitizePhoneNumber(phoneNumber)
+        : null;
+
       // Validate required fields
-      if (!name || !email || !password) {
+      if (!sanitizedName || !sanitizedEmail || !password) {
         return NextResponse.json(
           { success: false, error: "Name, email, and password are required" },
           { status: 400 }
@@ -108,7 +120,7 @@ export const POST = withRbac(
 
       // Check if user already exists
       const existingUser = await prisma.user.findUnique({
-        where: { email },
+        where: { email: sanitizedEmail },
       });
 
       if (existingUser) {
@@ -124,9 +136,9 @@ export const POST = withRbac(
       // Create user
       const newUser = await prisma.user.create({
         data: {
-          name,
-          email,
-          phoneNumber: phoneNumber || null,
+          name: sanitizedName,
+          email: sanitizedEmail,
+          phoneNumber: sanitizedPhone,
           password: hashedPassword,
           role: role || "CUSTOMER",
         },
@@ -177,6 +189,12 @@ export const PUT = withRbac(
       const body = await request.json();
       const { userId, name, phoneNumber } = body;
 
+      // Sanitize text inputs to prevent XSS
+      const sanitizedName = name ? sanitizeStrictInput(name) : undefined;
+      const sanitizedPhone = phoneNumber
+        ? sanitizePhoneNumber(phoneNumber)
+        : undefined;
+
       // Customers can only update themselves
       if (user.role === "CUSTOMER" && userId !== user.userId) {
         return NextResponse.json(
@@ -196,8 +214,8 @@ export const PUT = withRbac(
       const updatedUser = await prisma.user.update({
         where: { id: userId },
         data: {
-          ...(name && { name }),
-          ...(phoneNumber && { phoneNumber }),
+          ...(sanitizedName && { name: sanitizedName }),
+          ...(sanitizedPhone && { phoneNumber: sanitizedPhone }),
         },
         select: {
           id: true,

@@ -161,6 +161,194 @@ if (can('delete', 'users')) {
 
 ---
 
+### 🛡️ OWASP Security Implementation (XSS & SQL Injection Prevention)
+✅ **Comprehensive security measures against common web vulnerabilities**
+
+**Security Threats Addressed**:
+
+| Threat | Description | Impact | Prevention |
+|--------|-------------|--------|-----------|
+| **XSS (Cross-Site Scripting)** | Injection of malicious JavaScript code | Steal cookies, session tokens, redirect users | Input sanitization + output encoding |
+| **SQL Injection** | Manipulation of database queries | Data theft, deletion, unauthorized access | Parameterized queries + input validation |
+
+**Defense-in-Depth Strategy**:
+
+**1. Input Sanitization (Server-Side)**
+- 🧹 **HTML Sanitization**: Remove dangerous tags and attributes
+- ✉️ **Email Validation**: RFC-compliant email format checking
+- 📞 **Phone Number Cleaning**: Extract only valid digits
+- 🔗 **URL Validation**: Block javascript:, data:, file: protocols
+- 📁 **Filename Security**: Prevent path traversal attacks
+- 🔍 **Suspicious Pattern Detection**: Identify potential attack vectors
+
+```typescript
+// Example: Sanitizing user review
+import { sanitizeStrictInput, isSuspiciousInput } from '@/utils/sanitize';
+
+const userComment = "<script>alert('XSS')</script>Nice food!";
+const sanitized = sanitizeStrictInput(userComment); // "Nice food!"
+const dangerous = isSuspiciousInput(userComment);   // true
+```
+
+**2. Output Encoding (Client-Side)**
+- 🎨 **Safe HTML Rendering**: DOMPurify-based sanitization
+- 🔤 **HTML Entity Encoding**: Convert special characters
+- 🔗 **URL Encoding**: Escape URLs properly
+- ⚙️ **JavaScript Escaping**: Prevent code injection in inline scripts
+
+```typescript
+// Safe rendering component
+import { SafeHtml } from '@/utils/encode';
+
+<SafeHtml html={userContent} />  // Automatically sanitized
+```
+
+**3. SQL Injection Prevention**
+- 🔐 **Prisma ORM**: Parameterized queries by default
+- ✅ **Type Safety**: TypeScript prevents query manipulation
+- 🛡️ **No Raw SQL**: All queries through ORM abstraction
+
+```typescript
+// SAFE - Prisma uses parameterized queries
+const user = await prisma.user.findFirst({
+  where: { email: userInput } // Treated as data, not code
+});
+
+// VULNERABLE - Never do this!
+// db.query(`SELECT * FROM users WHERE email = '${userInput}'`)
+```
+
+**Attack Examples & Protection**:
+
+**XSS Attack Patterns**:
+1. **Script Tag Injection**: `<script>alert('XSS')</script>` → ` Removed`
+2. **Event Handler**: `<img src=x onerror="alert(1)">` → `Image without event`
+3. **JavaScript Protocol**: `<a href="javascript:alert(1)">Link</a>` → `Blocked`
+4. **Iframe Injection**: `<iframe src="http://evil.com"></iframe>` → `Removed`
+5. **SVG Script**: `<svg onload="alert(1)"></svg>` → `Sanitized`
+
+**SQL Injection Patterns**:
+1. **OR 1=1 Attack**: `' OR '1'='1` → Parameterized query treats as literal string
+2. **UNION SELECT**: `' UNION SELECT password FROM users --` → No SQL execution
+3. **DROP TABLE**: `'; DROP TABLE users; --` → Prisma prevents stacked queries
+4. **Stacked Queries**: `admin'; UPDATE users SET role='admin' --` → Safely escaped
+
+**Security Test Results**:
+```
+🔒 Security Test Suite
+============================================================
+Total Tests: 37
+✅ Passed: 37 (100% success rate)
+
+XSS Prevention: 7/7 ✅
+SQL Injection Prevention: 6/6 ✅
+Email Sanitization: 4/4 ✅
+Phone Sanitization: 3/3 ✅
+URL Sanitization: 5/5 ✅
+Filename Sanitization: 4/4 ✅
+Object Sanitization: 3/3 ✅
+Suspicious Detection: 5/5 ✅
+```
+
+**Before/After Comparison**:
+
+| Input (Malicious) | After Sanitization | Safe? |
+|-------------------|-------------------|-------|
+| `<script>alert(1)</script>Hello` | `Hello` | ✅ Yes |
+| `user@test.com<img onerror="alert(1)">` | `user@test.com` | ✅ Yes |
+| `' OR 1=1 --` | Treated as literal text in Prisma | ✅ Yes |
+| `javascript:alert(document.cookie)` | Empty string (blocked) | ✅ Yes |
+| `../../../etc/passwd` | `etcpasswd` (path traversal removed) | ✅ Yes |
+
+**Key Security Functions**:
+
+| Function | Purpose | Example |
+|----------|---------|---------|
+| `sanitizeStrictInput()` | Remove ALL HTML tags | User comments, reviews |
+| `sanitizeHtmlInput()` | Allow safe HTML formatting | Blog posts, descriptions |
+| `sanitizeEmail()` | Validate & normalize emails | User registration |
+| `sanitizeUrl()` | Block dangerous protocols | Link submissions |
+| `sanitizeObject()` | Recursively sanitize objects | Form data processing |
+| `isSuspiciousInput()` | Detect attack patterns | Security monitoring |
+
+**Implementation Locations**:
+
+📂 **Server-Side Security**:
+- [sanitize.ts](foodontracks/src/utils/sanitize.ts) - Input sanitization utilities (11 functions)
+- [test-xss/route.ts](foodontracks/src/app/api/security/test-xss/route.ts) - XSS testing endpoint
+- [test-sql/route.ts](foodontracks/src/app/api/security/test-sql/route.ts) - SQL injection testing endpoint
+
+📂 **Client-Side Security**:
+- [encode.tsx](foodontracks/src/utils/encode.tsx) - Output encoding utilities
+- [SafeHtml](foodontracks/src/utils/encode.tsx#L40) - React component for safe rendering
+- [SafeText](foodontracks/src/utils/encode.tsx#L55) - Plain text rendering
+
+📂 **Testing & Demo**:
+- [test_security.ts](foodontracks/scripts/test_security.ts) - Comprehensive test suite (37 tests)
+- [security-demo](foodontracks/src/app/security-demo/page.tsx) - Interactive demonstration
+
+**Security Best Practices**:
+- ✅ **Never Trust User Input**: Always sanitize before processing
+- ✅ **Use Parameterized Queries**: Prisma ORM prevents SQL injection
+- ✅ **Encode Output**: Sanitize before rendering in UI
+- ✅ **Content Security Policy**: Set CSP headers to block inline scripts
+- ✅ **Regular Updates**: Keep security dependencies up to date
+- ✅ **Audit Logging**: Track suspicious input attempts
+- ✅ **Defense in Depth**: Multiple layers of protection
+
+**Testing**:
+```bash
+# Run security test suite
+npx tsx scripts/test_security.ts
+
+# Interactive demo
+Visit /security-demo in the browser
+```
+
+**Reflections on Security Implementation**:
+
+🎯 **What Worked Well**:
+- Prisma ORM provides excellent SQL injection protection out of the box
+- sanitize-html library is powerful and well-maintained
+- DOMPurify works seamlessly in both browser and server (isomorphic)
+- Test-driven approach caught edge cases early
+- Interactive demo page makes security measures visible to stakeholders
+
+💡 **Challenges Faced**:
+- Balancing security with usability (not over-sanitizing valid input)
+- Handling different contexts (HTML in emails vs comments)
+- TypeScript strict mode required careful type handling
+- Distinguishing between legitimate and malicious patterns
+
+🔄 **Future Improvements**:
+- Add rate limiting to prevent brute force attacks
+- Implement Content Security Policy (CSP) headers
+- Add CAPTCHA for sensitive operations
+- Set up automated security scanning (OWASP ZAP)
+- Add request signature verification for API calls
+- Implement WAF (Web Application Firewall) rules
+- Add honeypot fields for bot detection
+
+🧪 **Maintenance Plan**:
+- Weekly security dependency updates
+- Monthly review of audit logs for attack patterns
+- Quarterly penetration testing
+- Annual third-party security audit
+- Continuous monitoring of OWASP Top 10 updates
+
+📚 **Demo**: Visit [/security-demo](foodontracks/src/app/security-demo/page.tsx) to see XSS and SQL injection prevention in action  
+🧪 **Testing**: Run `npx tsx scripts/test_security.ts` to validate all security measures (37 tests)  
+📖 **API Testing**: Use `/api/security/test-xss` and `/api/security/test-sql` endpoints  
+📝 **Sanitized APIs**: 8 endpoints protected - see [API_SANITIZATION_DOCUMENTATION.md](foodontracks/API_SANITIZATION_DOCUMENTATION.md)
+
+**Protected Endpoints**:
+- ✅ `/api/reviews` - Review comments sanitized
+- ✅ `/api/restaurants` - Restaurant data sanitized (create & update)
+- ✅ `/api/menu-items` - Menu item names and descriptions sanitized
+- ✅ `/api/users` - User profiles sanitized (create & update)
+
+---
+
 ### 🔐 JWT Access & Refresh Tokens
 ✅ **Secure authentication with automatic token refresh**
 - **Access Tokens**: Short-lived (15 minutes) for API requests

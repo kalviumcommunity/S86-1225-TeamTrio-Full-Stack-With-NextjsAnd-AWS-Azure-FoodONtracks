@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { sanitizeStrictInput } from "@/utils/sanitize";
 
 // Mock menu items data for demo purposes
 const mockMenuItems = [
@@ -62,12 +63,17 @@ export async function POST(req: NextRequest) {
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 300));
 
+    // Sanitize text inputs to prevent XSS
+    const sanitizedName = sanitizeStrictInput(body.name || "");
+    const sanitizedDescription = sanitizeStrictInput(body.description || "");
+    const sanitizedCategory = sanitizeStrictInput(body.category || "New");
+
     const newItem = {
       id: Date.now(),
-      name: body.name,
-      description: body.description || "",
+      name: sanitizedName,
+      description: sanitizedDescription,
       price: parseFloat(body.price),
-      category: body.category || "New",
+      category: sanitizedCategory,
       available: body.available !== undefined ? body.available : true,
       restaurantId: body.restaurantId || 1,
     };

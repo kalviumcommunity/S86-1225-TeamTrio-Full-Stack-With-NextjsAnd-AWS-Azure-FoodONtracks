@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { updateRestaurantSchema } from "@/lib/schemas/restaurantSchema";
 import { validateData } from "@/lib/validationUtils";
+import { sanitizeObject } from "@/utils/sanitize";
 
 // GET /api/restaurants/[id] - Get a specific restaurant
 export async function GET(
@@ -88,10 +89,13 @@ export async function PUT(
       );
     }
 
+    // Sanitize all text fields to prevent XSS
+    const sanitizedData = sanitizeObject(validationResult.data);
+
     // Update restaurant
     const restaurant = await prisma.restaurant.update({
       where: { id: restaurantId },
-      data: validationResult.data,
+      data: sanitizedData,
     });
 
     return NextResponse.json({
