@@ -89,6 +89,55 @@ Each food batch receives a unique Batch ID, and suppliers, kitchens, vendors, an
 🧪 **Testing**: See [TESTING_GUIDE.md](foodontracks/src/app/lib/TESTING_GUIDE.md) for complete testing instructions
 📚 **Demo**: Use Chrome DevTools Network throttling (Slow 3G) to see loading states
 
+### 🔐 JWT Access & Refresh Tokens
+✅ **Secure authentication with automatic token refresh**
+- **Access Tokens**: Short-lived (15 minutes) for API requests
+- **Refresh Tokens**: Long-lived (7 days) for obtaining new access tokens
+- **HTTP-Only Cookies**: Secure storage preventing XSS attacks
+- **Token Rotation**: Automatic refresh before expiry
+- **Security Headers**: SameSite, Secure, HttpOnly flags
+
+**JWT Token Structure**:
+```javascript
+{
+  header: { alg: "HS256", typ: "JWT" },
+  payload: { userId, email, role, type, exp, iat },
+  signature: "hashed-verification-string"
+}
+```
+
+**Token Flow**:
+1. User logs in → Server issues access + refresh tokens
+2. Client stores tokens in HTTP-only cookies
+3. Access token used for API requests (15 min lifespan)
+4. When access token expires → Automatically refreshed using refresh token
+5. Refresh token rotates for security (optional)
+
+**Security Mitigations**:
+| Threat | Mitigation |
+|--------|-----------|
+| **XSS** | HTTP-only cookies (JavaScript can't access) |
+| **CSRF** | SameSite=Strict cookies + Origin checks |
+| **Token Replay** | Short token lifespan + rotation |
+| **Token Theft** | Secure cookies (HTTPS only in production) |
+
+**Implementation Files**:
+- 📄 `lib/jwtService.ts` - Token generation & validation
+- 📄 `lib/authClient.ts` - Client-side auto-refresh helper
+- 📄 `api/auth/login` - Issues access + refresh tokens
+- 📄 `api/auth/refresh` - Refreshes expired access tokens
+- 📄 `api/auth/verify` - Validates current token
+- 📄 `api/auth/logout` - Clears authentication cookies
+- 📄 `middleware.ts` - Route protection with token validation
+
+**API Endpoints**:
+- `POST /api/auth/login` - Login and get tokens
+- `POST /api/auth/refresh` - Refresh access token
+- `GET /api/auth/verify` - Check if token is valid
+- `POST /api/auth/logout` - Logout and clear cookies
+
+🧪 **Testing**: Run `.\foodontracks\test-jwt-auth.ps1` to test full authentication flow
+
 ---
 
 ## 📁 Folder Structure (Sprint-1)
