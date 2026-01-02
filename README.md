@@ -399,6 +399,66 @@ http://localhost:3000/fake-route    → 404 page ✓
    http://localhost:3000/users/2    → User 2 profile ✓
 ```
 
+---
+
+## Logging & Monitoring
+
+**Structured JSON logs** are emitted from the application using a small utility at `foodontracks/src/lib/logger.ts`.
+
+- **Format**: { timestamp, level, message, ...meta }
+- **Correlation**: Use a request ID (generated via `genRequestId()`) and include it in API logs to trace requests.
+
+Example Next.js API usage:
+
+```
+import { logger, genRequestId } from '@/lib/logger';
+
+const requestId = genRequestId();
+logger.info('api_request_received', { requestId, endpoint: req.url, method: req.method });
+```
+
+AWS CloudWatch (ECS / Docker):
+
+Add `awslogs` driver to your task definition or `docker-compose` service:
+
+```
+"logConfiguration": {
+  "logDriver": "awslogs",
+  "options": {
+    "awslogs-group": "/ecs/nextjs-app",
+    "awslogs-region": "ap-south-1",
+    "awslogs-stream-prefix": "ecs"
+  }
+}
+```
+
+Create a metric filter in CloudWatch Logs to count errors, e.g. pattern: `{ $.level = "error" }` and build dashboards/alarms.
+
+Azure Monitor (App Service):
+
+- Enable Diagnostic settings → send `AppServiceConsoleLogs` to a Log Analytics workspace.
+- Sample Kusto query to count errors:
+
+```
+AppServiceConsoleLogs
+| where Level == "Error"
+| summarize errors = count() by bin(TimeGenerated, 1h)
+```
+
+Retention & Archival:
+- Keep operational logs 7–14 days by default; archive to S3/Blob for long-term storage.
+
+Dashboards & Alerts (examples):
+- API Error Count (>10 errors / 5m)
+- Average Response Time (>2s)
+- Container CPU Utilization (>80%)
+
+Files changed to integrate structured logging: `foodontracks/src/lib/logger.ts`, `foodontracks/src/middleware/rbacLogger.ts`, `foodontracks/src/middleware/rbac.ts`, `foodontracks/src/lib/database.ts`, `foodontracks/src/app/api/reviews/route.ts`, `foodontracks/src/app/api/restaurants/route.ts`, `foodontracks/src/context/AuthContext.tsx`.
+
+Reflection:
+- Structured logs enable fast queries and reliable alerting. Ensure correlation IDs are added to all handlers and forwarded to downstream services.
+
+
 **Step 4**: Test access denial
 ```
 1. Clear browser cookies (or use incognito window)
