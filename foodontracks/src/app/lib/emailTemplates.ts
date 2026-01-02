@@ -232,8 +232,8 @@ export const orderStatusEmailTemplate = (data: OrderStatusData): string => {
   const statusMessages: Record<string, string> = {
     CONFIRMED: "Your order has been confirmed and is being prepared! 👨‍🍳",
     PREPARING: "Your delicious meal is being prepared with care! 🍳",
-    READY_FOR_PICKUP: "Your order is ready and will be picked up soon! 📦",
-    OUT_FOR_DELIVERY: "Your order is on its way to you! 🚗",
+    READY: "Your order is ready and will be picked up soon! 📦",
+    PICKED_UP: "Your order is on its way to you! 🚗",
     DELIVERED: "Your order has been delivered! Enjoy your meal! 🎉",
     CANCELLED: "Your order has been cancelled. 😔",
   };

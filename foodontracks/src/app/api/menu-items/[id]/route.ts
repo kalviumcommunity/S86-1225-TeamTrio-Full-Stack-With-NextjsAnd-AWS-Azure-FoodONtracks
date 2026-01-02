@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 // GET /api/menu-items/[id]
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -115,7 +115,7 @@ export async function PUT(
 
 // DELETE /api/menu-items/[id]
 export async function DELETE(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {

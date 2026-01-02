@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { updateUserSchema } from "@/lib/schemas/userSchema";
+import { userUpdateSchema } from "@/lib/schemas/userSchema";
 import { handleError, AppError, ErrorType } from "@/lib/errorHandler";
 import { logger } from "@/lib/logger";
 
 // GET /api/users/[id] - Get a specific user by ID
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -17,7 +17,7 @@ export async function GET(
       throw new AppError(
         ErrorType.VALIDATION_ERROR,
         400,
-        'Invalid user ID format',
+        "Invalid user ID format",
         { providedId: id }
       );
     }
@@ -53,15 +53,12 @@ export async function GET(
     });
 
     if (!user) {
-      throw new AppError(
-        ErrorType.NOT_FOUND_ERROR,
-        404,
-        'User not found',
-        { userId }
-      );
+      throw new AppError(ErrorType.NOT_FOUND_ERROR, 404, "User not found", {
+        userId,
+      });
     }
 
-    logger.info('User retrieved', { userId });
+    logger.info("User retrieved", { userId });
 
     return NextResponse.json({
       success: true,
@@ -85,7 +82,7 @@ export async function PUT(
       throw new AppError(
         ErrorType.VALIDATION_ERROR,
         400,
-        'Invalid user ID format',
+        "Invalid user ID format",
         { providedId: id }
       );
     }
@@ -93,7 +90,7 @@ export async function PUT(
     const body = await req.json();
 
     // Validate input using Zod schema
-    const validatedData = updateUserSchema.parse(body);
+    const validatedData = userUpdateSchema.parse(body);
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
@@ -101,12 +98,9 @@ export async function PUT(
     });
 
     if (!existingUser) {
-      throw new AppError(
-        ErrorType.NOT_FOUND_ERROR,
-        404,
-        'User not found',
-        { userId }
-      );
+      throw new AppError(ErrorType.NOT_FOUND_ERROR, 404, "User not found", {
+        userId,
+      });
     }
 
     // Update user
@@ -123,7 +117,7 @@ export async function PUT(
       },
     });
 
-    logger.info('User updated successfully', {
+    logger.info("User updated successfully", {
       userId,
       updatedFields: Object.keys(validatedData),
     });
@@ -140,7 +134,7 @@ export async function PUT(
 
 // DELETE /api/users/[id] - Delete a user
 export async function DELETE(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -151,7 +145,7 @@ export async function DELETE(
       throw new AppError(
         ErrorType.VALIDATION_ERROR,
         400,
-        'Invalid user ID format',
+        "Invalid user ID format",
         { providedId: id }
       );
     }
@@ -162,12 +156,9 @@ export async function DELETE(
     });
 
     if (!existingUser) {
-      throw new AppError(
-        ErrorType.NOT_FOUND_ERROR,
-        404,
-        'User not found',
-        { userId }
-      );
+      throw new AppError(ErrorType.NOT_FOUND_ERROR, 404, "User not found", {
+        userId,
+      });
     }
 
     // Delete user (cascade will handle related records)
@@ -175,7 +166,7 @@ export async function DELETE(
       where: { id: userId },
     });
 
-    logger.info('User deleted', { userId });
+    logger.info("User deleted", { userId });
 
     return NextResponse.json({
       success: true,

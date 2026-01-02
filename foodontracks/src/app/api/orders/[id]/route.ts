@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { updateOrderSchema } from "@/lib/schemas/orderSchema";
+import { orderUpdateSchema } from "@/lib/schemas/orderSchema";
 import { validateData } from "@/lib/validationUtils";
 
 // GET /api/orders/[id]
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -73,8 +73,8 @@ export async function PATCH(
     const body = await req.json();
 
     // Validate input using Zod schema
-    const validationResult = validateData(updateOrderSchema, body);
-    if (!validationResult.success) {
+    const validationResult = validateData(orderUpdateSchema, body);
+    if (!validationResult.success || !validationResult.data) {
       return NextResponse.json(validationResult, { status: 400 });
     }
 
@@ -87,7 +87,8 @@ export async function PATCH(
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    const { status, specialInstructions, deliveryPersonId } = validationResult.data;
+    const { status, specialInstructions, deliveryPersonId } =
+      validationResult.data;
 
     // Update order and create tracking event in transaction
     const order = await prisma.$transaction(async (tx) => {
@@ -96,10 +97,15 @@ export async function PATCH(
         data: {
           ...(status && { status }),
           ...(specialInstructions !== undefined && { specialInstructions }),
-          ...(deliveryPersonId !== undefined && { deliveryPersonId }),
-          ...(status === "DELIVERED" && !existingOrder.actualDeliveryTime && {
-            actualDeliveryTime: new Date(),
+          ...(deliveryPersonId !== undefined && {
+            deliveryPerson: deliveryPersonId
+              ? { connect: { id: parseInt(deliveryPersonId) } }
+              : { disconnect: true },
           }),
+          ...(status === "DELIVERED" &&
+            !existingOrder.actualDeliveryTime && {
+              actualDeliveryTime: new Date(),
+            }),
         },
         include: {
           orderItems: {
@@ -152,8 +158,8 @@ export async function PUT(
     const body = await req.json();
 
     // Validate input using Zod schema
-    const validationResult = validateData(updateOrderSchema, body);
-    if (!validationResult.success) {
+    const validationResult = validateData(orderUpdateSchema, body);
+    if (!validationResult.success || !validationResult.data) {
       return NextResponse.json(validationResult, { status: 400 });
     }
 
@@ -166,7 +172,8 @@ export async function PUT(
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    const { status, specialInstructions, deliveryPersonId } = validationResult.data;
+    const { status, specialInstructions, deliveryPersonId } =
+      validationResult.data;
 
     // Update order and create tracking event in transaction
     const order = await prisma.$transaction(async (tx) => {
@@ -175,10 +182,15 @@ export async function PUT(
         data: {
           ...(status && { status }),
           ...(specialInstructions !== undefined && { specialInstructions }),
-          ...(deliveryPersonId !== undefined && { deliveryPersonId }),
-          ...(status === "DELIVERED" && !existingOrder.actualDeliveryTime && {
-            actualDeliveryTime: new Date(),
+          ...(deliveryPersonId !== undefined && {
+            deliveryPerson: deliveryPersonId
+              ? { connect: { id: parseInt(deliveryPersonId) } }
+              : { disconnect: true },
           }),
+          ...(status === "DELIVERED" &&
+            !existingOrder.actualDeliveryTime && {
+              actualDeliveryTime: new Date(),
+            }),
         },
         include: {
           orderItems: {
@@ -195,76 +207,6 @@ export async function PUT(
           data: {
             orderId,
             status,
-          },
-        });
-      }
-
-      return updatedOrder;
-    });
-
-    return NextResponse.json({
-      message: "Order updated successfully",
-      data: order,
-    });
-  } catch (error) {
-    console.error("Error updating order:", error);
-    return NextResponse.json(
-      { error: "Failed to update order" },
-      { status: 500 }
-    );
-  }
-}
-    if (isNaN(orderId)) {
-      return NextResponse.json({ error: "Invalid order ID" }, { status: 400 });
-    }
-
-    const body = await req.json();
-
-    // Validate input using Zod schema
-    const validationResult = validateData(updateOrderSchema, body);
-    if (!validationResult.success) {
-      return NextResponse.json(validationResult, { status: 400 });
-    }    // Check if order exists
-    const existingOrder = await prisma.order.findUnique({
-      where: { id: orderId },
-    });
-
-    if (!existingOrder) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
-    }
-
-    // Update order and create tracking event in transaction
-    const order = await prisma.$transaction(async (tx) => {
-      const updatedOrder = await tx.order.update({
-        where: { id: orderId },
-        data: {
-          status: status || existingOrder.status,
-          deliveryPersonId:
-            deliveryPersonId !== undefined
-              ? deliveryPersonId
-              : existingOrder.deliveryPersonId,
-          actualDeliveryTime:
-            status === "DELIVERED"
-              ? new Date()
-              : existingOrder.actualDeliveryTime,
-        },
-        include: {
-          orderItems: {
-            include: {
-              menuItem: true,
-            },
-          },
-        },
-      });
-
-      // Create tracking event if status changed
-      if (status && status !== existingOrder.status) {
-        await tx.orderTracking.create({
-          data: {
-            orderId,
-            status,
-            location,
-            notes,
           },
         });
       }
@@ -287,7 +229,7 @@ export async function PUT(
 
 // DELETE /api/orders/[id] - Cancel order
 export async function DELETE(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {

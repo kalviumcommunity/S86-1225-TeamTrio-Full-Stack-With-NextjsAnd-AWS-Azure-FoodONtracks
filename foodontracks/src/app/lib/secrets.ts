@@ -1,9 +1,14 @@
-import AWS from "aws-sdk";
+import {
+  SecretsManagerClient,
+  GetSecretValueCommand,
+} from "@aws-sdk/client-secrets-manager";
 
-const client = new AWS.SecretsManager({
+const client = new SecretsManagerClient({
   region: process.env.AWS_REGION,
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
 });
 
 export async function getSecrets() {
@@ -13,21 +18,20 @@ export async function getSecrets() {
       return {
         MOCK_SECRET_KEY: "mock-value",
         ANOTHER_KEY: "another-mock",
-      } as any;
+      } as Record<string, string>;
     }
 
     throw new Error("Missing environment variable: SECRET_ARN");
   }
 
-  const response = await client
-    .getSecretValue({ SecretId: secretId })
-    .promise();
+  const command = new GetSecretValueCommand({ SecretId: secretId });
+  const response = await client.send(command);
 
   if (!response || !response.SecretString) return {};
 
   try {
     return JSON.parse(response.SecretString);
-  } catch (err) {
+  } catch {
     return {};
   }
 }

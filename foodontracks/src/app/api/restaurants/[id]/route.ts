@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { updateRestaurantSchema } from "@/lib/schemas/restaurantSchema";
+import { restaurantUpdateSchema } from "@/lib/schemas/restaurantSchema";
 import { validateData } from "@/lib/validationUtils";
 
 // GET /api/restaurants/[id] - Get a specific restaurant
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -71,8 +71,8 @@ export async function PUT(
     const body = await req.json();
 
     // Validate input using Zod schema
-    const validationResult = validateData(updateRestaurantSchema, body);
-    if (!validationResult.success) {
+    const validationResult = validateData(restaurantUpdateSchema, body);
+    if (!validationResult.success || !validationResult.data) {
       return NextResponse.json(validationResult, { status: 400 });
     }
 
@@ -109,7 +109,7 @@ export async function PUT(
 
 // DELETE /api/restaurants/[id] - Delete a restaurant
 export async function DELETE(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {

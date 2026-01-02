@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { updateAddressSchema } from "@/lib/schemas/addressSchema";
+import { addressUpdateSchema } from "@/lib/schemas/addressSchema";
 import { validateData } from "@/lib/validationUtils";
 
 // GET /api/addresses/[id]
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -56,9 +56,16 @@ export async function PUT(
     const body = await req.json();
 
     // Validate input using Zod schema
-    const validationResult = validateData(updateAddressSchema, body);
+    const validationResult = validateData(addressUpdateSchema, body);
     if (!validationResult.success) {
       return NextResponse.json(validationResult, { status: 400 });
+    }
+
+    if (!validationResult.data) {
+      return NextResponse.json(
+        { error: "Validation data is missing" },
+        { status: 400 }
+      );
     }
 
     const address = await prisma.address.update({
@@ -81,7 +88,7 @@ export async function PUT(
 
 // DELETE /api/addresses/[id]
 export async function DELETE(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {

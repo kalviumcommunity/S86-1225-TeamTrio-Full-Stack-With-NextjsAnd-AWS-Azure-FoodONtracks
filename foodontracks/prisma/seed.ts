@@ -274,7 +274,7 @@ async function main() {
         restaurantId: restaurants[0].id,
         addressId: addresses[0].id,
         deliveryPersonId: deliveryPersons[0].id,
-        orderNumber: `ORD-${Math.random().toString(36).slice(2,9).toUpperCase()}`,
+        orderNumber: `ORD-${Math.random().toString(36).slice(2, 9).toUpperCase()}`,
         status: "DELIVERED",
         totalAmount: 26.97,
         deliveryFee: 3.99,
@@ -291,8 +291,8 @@ async function main() {
         restaurantId: restaurants[1].id,
         addressId: addresses[1].id,
         deliveryPersonId: deliveryPersons[1].id,
-        orderNumber: `ORD-${Math.random().toString(36).slice(2,9).toUpperCase()}`,
-        status: "OUT_FOR_DELIVERY",
+        orderNumber: `ORD-${Math.random().toString(36).slice(2, 9).toUpperCase()}`,
+        status: "PICKED_UP",
         totalAmount: 31.97,
         deliveryFee: 3.99,
         tax: 2.56,
@@ -371,7 +371,7 @@ async function main() {
     prisma.orderTracking.create({
       data: {
         orderId: orders[0].id,
-        status: "OUT_FOR_DELIVERY",
+        status: "PICKED_UP",
         location: "Near Main Street",
         latitude: 40.7128,
         longitude: -74.006,

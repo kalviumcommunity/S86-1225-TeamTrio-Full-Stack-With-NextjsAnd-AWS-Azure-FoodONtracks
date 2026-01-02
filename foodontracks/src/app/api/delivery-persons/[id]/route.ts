@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { updateDeliveryPersonSchema } from "@/lib/schemas/deliveryPersonSchema";
+import { deliveryPersonUpdateSchema } from "@/lib/schemas/deliveryPersonSchema";
 import { validateData } from "@/lib/validationUtils";
 
 // GET /api/delivery-persons/[id] - Get specific delivery person
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -85,8 +85,8 @@ export async function PUT(
     const body = await request.json();
 
     // Validate input using Zod schema
-    const validationResult = validateData(updateDeliveryPersonSchema, body);
-    if (!validationResult.success) {
+    const validationResult = validateData(deliveryPersonUpdateSchema, body);
+    if (!validationResult.success || !validationResult.data) {
       return NextResponse.json(validationResult, { status: 400 });
     }
 
@@ -152,7 +152,7 @@ export async function PUT(
 
 // DELETE /api/delivery-persons/[id] - Delete delivery person
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -190,7 +190,7 @@ export async function DELETE(
       where: {
         deliveryPersonId: deliveryPersonId,
         status: {
-          in: ["PENDING", "CONFIRMED", "PREPARING", "OUT_FOR_DELIVERY"],
+          in: ["PENDING", "CONFIRMED", "PREPARING", "PICKED_UP"],
         },
       },
     });

@@ -1,25 +1,26 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/app/lib/prisma";
-import {
-  createSuccessResponse,
-  createErrorResponse,
-} from "@/app/lib/responseHandler";
+import { NextRequest } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { sendSuccess, sendError } from "@/lib/responseHandler";
+import { ERROR_CODES } from "@/lib/errorCodes";
 
 /**
  * GET /api/files/[id]
  * Retrieves a single file by ID
  */
 export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const fileId = parseInt(params.id);
+    const { id } = await params;
+    const fileId = parseInt(id);
 
     if (isNaN(fileId)) {
-      return NextResponse.json(
-        createErrorResponse("Invalid file ID", "VALIDATION_ERROR"),
-        { status: 400 }
+      return sendError(
+        ERROR_CODES.VALIDATION_ERROR,
+        "Invalid file ID",
+        undefined,
+        400
       );
     }
 
@@ -28,27 +29,24 @@ export async function GET(
     });
 
     if (!file) {
-      return NextResponse.json(
-        createErrorResponse("File not found", "FILE_NOT_FOUND"),
-        { status: 404 }
+      return sendError(
+        ERROR_CODES.FILE_NOT_FOUND,
+        "File not found",
+        undefined,
+        404
       );
     }
 
-    return NextResponse.json(
-      createSuccessResponse(file, "File retrieved successfully"),
-      { status: 200 }
-    );
+    return sendSuccess(file, "File retrieved successfully", 200);
   } catch (error: unknown) {
     console.error("Error retrieving file:", error);
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json(
-      createErrorResponse(
-        "Failed to retrieve file",
-        "FILE_RETRIEVAL_FAILED",
-        errorMessage
-      ),
-      { status: 500 }
+    return sendError(
+      ERROR_CODES.DATABASE_ERROR,
+      "Failed to retrieve file",
+      errorMessage,
+      500
     );
   }
 }
@@ -59,15 +57,18 @@ export async function GET(
  */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const fileId = parseInt(params.id);
+    const { id } = await params;
+    const fileId = parseInt(id);
 
     if (isNaN(fileId)) {
-      return NextResponse.json(
-        createErrorResponse("Invalid file ID", "VALIDATION_ERROR"),
-        { status: 400 }
+      return sendError(
+        ERROR_CODES.VALIDATION_ERROR,
+        "Invalid file ID",
+        undefined,
+        400
       );
     }
 
@@ -80,9 +81,11 @@ export async function PATCH(
     });
 
     if (!existingFile) {
-      return NextResponse.json(
-        createErrorResponse("File not found", "FILE_NOT_FOUND"),
-        { status: 404 }
+      return sendError(
+        ERROR_CODES.FILE_NOT_FOUND,
+        "File not found",
+        undefined,
+        404
       );
     }
 
@@ -96,21 +99,16 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json(
-      createSuccessResponse(updatedFile, "File updated successfully"),
-      { status: 200 }
-    );
+    return sendSuccess(updatedFile, "File updated successfully", 200);
   } catch (error: unknown) {
     console.error("Error updating file:", error);
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json(
-      createErrorResponse(
-        "Failed to update file",
-        "FILE_UPDATE_FAILED",
-        errorMessage
-      ),
-      { status: 500 }
+    return sendError(
+      ERROR_CODES.DATABASE_ERROR,
+      "Failed to update file",
+      errorMessage,
+      500
     );
   }
 }
@@ -121,16 +119,19 @@ export async function PATCH(
  * Note: This only deletes the database record, not the actual file from S3
  */
 export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { id: string } }
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const fileId = parseInt(params.id);
+    const { id } = await params;
+    const fileId = parseInt(id);
 
     if (isNaN(fileId)) {
-      return NextResponse.json(
-        createErrorResponse("Invalid file ID", "VALIDATION_ERROR"),
-        { status: 400 }
+      return sendError(
+        ERROR_CODES.VALIDATION_ERROR,
+        "Invalid file ID",
+        undefined,
+        400
       );
     }
 
@@ -140,9 +141,11 @@ export async function DELETE(
     });
 
     if (!existingFile) {
-      return NextResponse.json(
-        createErrorResponse("File not found", "FILE_NOT_FOUND"),
-        { status: 404 }
+      return sendError(
+        ERROR_CODES.FILE_NOT_FOUND,
+        "File not found",
+        undefined,
+        404
       );
     }
 
@@ -151,21 +154,16 @@ export async function DELETE(
       where: { id: fileId },
     });
 
-    return NextResponse.json(
-      createSuccessResponse({ id: fileId }, "File deleted successfully"),
-      { status: 200 }
-    );
+    return sendSuccess({ id: fileId }, "File deleted successfully", 200);
   } catch (error: unknown) {
     console.error("Error deleting file:", error);
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json(
-      createErrorResponse(
-        "Failed to delete file",
-        "FILE_DELETE_FAILED",
-        errorMessage
-      ),
-      { status: 500 }
+    return sendError(
+      ERROR_CODES.DATABASE_ERROR,
+      "Failed to delete file",
+      errorMessage,
+      500
     );
   }
 }

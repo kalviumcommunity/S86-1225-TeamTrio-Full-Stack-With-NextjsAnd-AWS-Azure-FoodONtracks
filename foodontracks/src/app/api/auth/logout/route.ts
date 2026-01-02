@@ -35,6 +35,6 @@ export async function POST() {
  *
  * Alternative logout via GET (for simple links)
  */
-export async function GET(req: Request) {
-  return POST(req);
+export async function GET() {
+  return POST();
 }

@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendSuccess, sendError } from "@/lib/responseHandler";
 import { ERROR_CODES } from "@/lib/errorCodes";
-import { createRestaurantSchema } from "@/lib/schemas/restaurantSchema";
-import { validateData } from "@/lib/validationUtils";
+import { restaurantCreateSchema } from "@/lib/schemas/restaurantSchema";
 import { validateData } from "@/lib/validationUtils";
 
 // GET /api/restaurants - Get all restaurants with pagination
@@ -87,8 +86,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     // Validate input using Zod schema
-    const validationResult = validateData(createRestaurantSchema, body);
-    if (!validationResult.success) {
+    const validationResult = validateData(restaurantCreateSchema, body);
+    if (!validationResult.success || !validationResult.data) {
       return NextResponse.json(validationResult, { status: 400 });
     }
 

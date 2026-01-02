@@ -132,7 +132,7 @@ try {
         templateData = @{
             userName = "Test User"
             orderNumber = "ORD-2025-001"
-            status = "OUT_FOR_DELIVERY"
+            status = "PICKED_UP"
             trackingLink = "https://foodontracks.com/track/ORD-2025-001"
         }
     } | ConvertTo-Json

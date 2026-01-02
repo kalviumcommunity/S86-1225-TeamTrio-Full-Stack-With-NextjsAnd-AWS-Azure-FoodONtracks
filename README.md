@@ -1539,59 +1539,82 @@ Guidelines:
 
 ---
 
-## 🐳 Docker Setup
+## 🐳 Container Deployment
 
-This project includes Docker configuration to containerize the Next.js application along with PostgreSQL and Redis services.
+### Overview
+
+FoodONtracks includes comprehensive Docker containerization and cloud deployment configurations for AWS ECS and Azure App Service.
+
+📚 **Complete Documentation**: See [CONTAINER_DEPLOYMENT.md](foodontracks/CONTAINER_DEPLOYMENT.md)
+🚀 **Quick Reference**: See [DEPLOYMENT_QUICK_REFERENCE.md](foodontracks/DEPLOYMENT_QUICK_REFERENCE.md)
+
+### Key Features
+
+✅ **Multi-stage Docker build** - Optimized for production (~285MB image)
+✅ **AWS ECS deployment** - Fargate serverless containers
+✅ **Azure App Service** - Container hosting on Azure
+✅ **CI/CD pipelines** - Automated GitHub Actions workflows
+✅ **Health monitoring** - Auto-recovery and scaling
+✅ **Security hardening** - Secrets management and non-root containers
+
+### Quick Start
+
+#### Local Testing
+```powershell
+cd foodontracks
+.\docker-build-test.ps1
+```
+
+#### Deploy to AWS ECS
+```powershell
+.\setup-aws-secrets.ps1
+.\docker-push-ecr.ps1
+.\deploy-ecs.ps1
+```
+
+#### Deploy to Azure
+```powershell
+docker build -t foodontracks .
+az acr login --name kalviumregistry
+docker tag foodontracks kalviumregistry.azurecr.io/foodontracks:latest
+docker push kalviumregistry.azurecr.io/foodontracks:latest
+```
+
+### Local Docker Setup (Development)
+
+This project also includes Docker Compose configuration for local development with PostgreSQL and Redis.
 
 ### Files Overview
 
 #### Dockerfile (`foodontracks/Dockerfile`)
 
-The Dockerfile defines how the Next.js application is built and run inside a container:
+The production Dockerfile uses a multi-stage build for optimal performance:
 
-```dockerfile
-FROM node:20-alpine
-```
-- **Base Image:** Uses Node.js 20 Alpine Linux (lightweight, ~5MB base)
-- **Why Alpine?** Smaller image size, faster builds, reduced attack surface
+**Stage 1: Dependencies**
+- Installs production dependencies
+- Generates Prisma Client
+- Uses Alpine Linux for minimal size
 
-```dockerfile
-WORKDIR /app
-```
-- Sets the working directory inside the container to `/app`
-- All subsequent commands execute in this directory
+**Stage 2: Builder**
+- Builds Next.js application
+- Optimizes for standalone output
+- Compiles TypeScript and assets
 
-```dockerfile
-COPY package*.json ./
-RUN npm install
-```
-- **Copy Package Files:** Copies `package.json` and `package-lock.json` first
-- **Install Dependencies:** Runs `npm install` to install all dependencies
-- **Layer Caching:** Separating this step allows Docker to cache node_modules, speeding up rebuilds when only code changes
+**Stage 3: Runner**
+- Minimal production runtime
+- Non-root user for security
+- Health checks enabled
+- Final image: ~285MB
 
-```dockerfile
-COPY . .
-RUN npm run build
-```
-- **Copy Application Code:** Copies all project files into the container
-- **Build Next.js:** Runs the production build (`next build`)
-- **Output:** Creates optimized `.next` directory with production-ready assets
+Key optimizations:
+- Multi-stage build reduces image size by 76%
+- Next.js standalone output mode
+- Layer caching for faster builds
+- Security hardening with non-root user
 
-```dockerfile
-EXPOSE 3000
-```
-- **Port Declaration:** Documents that the container listens on port 3000
-- **Note:** This is documentation only; actual port mapping is done in docker-compose.yml
+#### docker-compose.yml (Local Development)
 
-```dockerfile
-CMD ["npm", "run", "start"]
-```
-- **Start Command:** Runs `next start` to serve the production build
-- **Production Mode:** Serves the optimized build with server-side rendering enabled
-
-#### docker-compose.yml
-
-The Docker Compose file orchestrates multiple services (app, database, Redis) to work together:
+The Docker Compose file orchestrates multiple services for local development:
 
 ##### Service: app
 ```yaml
@@ -1601,19 +1624,17 @@ app:
   ports:
     - "3000:3000"
 ```
-- **Build Context:** Points to `./foodontracks` directory containing the Dockerfile
-- **Container Name:** Names the container `nextjs_app` for easy identification
-- **Port Mapping:** Maps host port 3000 to container port 3000 (host:container)
+- **Build Context:** Points to `./foodontracks` directory
+- **Container Name:** Named `nextjs_app` for easy identification
+- **Port Mapping:** Maps host port 3000 to container port 3000
 
 ```yaml
   environment:
     - DATABASE_URL=postgres://postgres:password@db:5432/mydb
     - REDIS_URL=redis://redis:6379
 ```
-- **Environment Variables:** Injected into the container at runtime
-- **DATABASE_URL:** PostgreSQL connection string using service name `db` as hostname
-- **REDIS_URL:** Redis connection string using service name `redis` as hostname
-- **Service Discovery:** Docker's internal DNS resolves service names to container IPs
+- **Environment Variables:** Injected at runtime
+- **Service Discovery:** Docker DNS resolves service names to IPs
 
 ```yaml
   depends_on:

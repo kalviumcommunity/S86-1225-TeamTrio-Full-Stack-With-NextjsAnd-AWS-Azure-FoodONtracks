@@ -1,0 +1,37 @@
+# Simple Development Dockerfile for FoodONtracks
+# This version builds successfully by using development mode
+
+FROM node:20-alpine
+
+# Install system dependencies
+RUN apk add --no-cache libc6-compat openssl curl
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Install all dependencies
+RUN npm install
+
+# Generate Prisma Client
+RUN npx prisma generate
+
+# Copy application code
+COPY . .
+
+# Set environment variables
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
+# Start in development mode (no build required)
+CMD ["npm", "run", "dev"]
