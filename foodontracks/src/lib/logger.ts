@@ -1,7 +1,8 @@
 /**
  * Structured Logger Utility
  * Provides consistent, environment-aware logging across the application
- * Supports JSON output for production monitoring and detailed logs for development
+ * Supports JSON output for production monitoring (CloudWatch/Azure Monitor)
+ * Includes correlation IDs for distributed tracing
  */
 
 type LogLevel = 'info' | 'error' | 'warn' | 'debug';
@@ -11,15 +12,30 @@ interface LogEntry {
   message: string;
   timestamp: string;
   environment: string;
+  service: string;
+  version: string;
   requestId?: string;
   userId?: string | number;
-  context?: string;
+  endpoint?: string;
+  method?: string;
+  statusCode?: number;
+  duration?: number;
+  context?: Record<string, any>;
   meta?: Record<string, any>;
   stack?: string;
 }
 
 class Logger {
   private isDevelopment = process.env.NODE_ENV === 'development';
+  private service = 'foodontracks-api';
+  private version = process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0';
+
+  /**
+   * Generate a unique correlation ID for request tracing
+   */
+  generateRequestId(): string {
+    return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  }
 
   /**
    * Format log entry as JSON
@@ -27,21 +43,39 @@ class Logger {
   private formatLog(
     level: LogLevel,
     message: string,
-    meta?: Record<string, any>,
-    stack?: string
+    options: {
+      requestId?: string;
+      userId?: string | number;
+      endpoint?: string;
+      method?: string;
+      statusCode?: number;
+      duration?: number;
+      context?: Record<string, any>;
+      meta?: Record<string, any>;
+      stack?: string;
+    } = {}
   ): LogEntry {
     return {
       level,
       message,
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV || 'development',
-      meta,
-      ...(stack && { stack }),
+      service: this.service,
+      version: this.version,
+      requestId: options.requestId,
+      userId: options.userId,
+      endpoint: options.endpoint,
+      method: options.method,
+      statusCode: options.statusCode,
+      duration: options.duration,
+      context: options.context,
+      meta: options.meta,
+      stack: options.stack,
     };
   }
 
   /**
-   * Output log to console (development) or external service (production)
+   * Output log to console (CloudWatch/Azure Monitor will capture this)
    */
   private output(entry: LogEntry): void {
     if (this.isDevelopment) {
@@ -54,57 +88,134 @@ class Logger {
       };
       const reset = '\x1b[0m';
 
-      console.log(
-        `${colors[entry.level]}[${entry.level.toUpperCase()}]${reset} ${entry.message}`,
-        entry.meta || ''
-      );
+      const logMsg = `${colors[entry.level]}[${entry.level.toUpperCase()}]${reset} ${entry.message}`;
+      console.log(logMsg, entry.meta || '');
 
       if (entry.stack) {
         console.error(`${colors.error}${entry.stack}${reset}`);
       }
     } else {
-      // Production: JSON output (can be sent to external service like Sentry, CloudWatch, etc.)
+      // Production: JSON output for CloudWatch/Azure Monitor
       console.log(JSON.stringify(entry));
-
-      // TODO: Integrate with external monitoring services
-      // - Sentry.captureException() for errors
-      // - CloudWatch for metrics
-      // - DataDog for distributed tracing
     }
   }
 
   /**
    * Log info level messages
    */
-  info(message: string, meta?: Record<string, any>): void {
-    const entry = this.formatLog('info', message, meta);
+  info(
+    message: string,
+    options: {
+      requestId?: string;
+      userId?: string | number;
+      endpoint?: string;
+      method?: string;
+      statusCode?: number;
+      duration?: number;
+      context?: Record<string, any>;
+      meta?: Record<string, any>;
+    } = {}
+  ): void {
+    const entry = this.formatLog('info', message, options);
     this.output(entry);
   }
 
   /**
    * Log error level messages
    */
-  error(message: string, meta?: Record<string, any>, stack?: string): void {
-    const entry = this.formatLog('error', message, meta, stack);
+  error(
+    message: string,
+    error?: Error | unknown,
+    options: {
+      requestId?: string;
+      userId?: string | number;
+      endpoint?: string;
+      statusCode?: number;
+      context?: Record<string, any>;
+      meta?: Record<string, any>;
+    } = {}
+  ): void {
+    let errorMessage = '';
+    let stack = '';
+
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      stack = error.stack || '';
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    } else if (error) {
+      errorMessage = String(error);
+    }
+
+    const entry = this.formatLog('error', message, {
+      ...options,
+      stack: stack || options.meta?.stack,
+      context: {
+        ...options.context,
+        errorDetail: errorMessage,
+      },
+    });
     this.output(entry);
   }
 
   /**
    * Log warning level messages
    */
-  warn(message: string, meta?: Record<string, any>): void {
-    const entry = this.formatLog('warn', message, meta);
+  warn(
+    message: string,
+    options: {
+      requestId?: string;
+      context?: Record<string, any>;
+      meta?: Record<string, any>;
+    } = {}
+  ): void {
+    const entry = this.formatLog('warn', message, options);
     this.output(entry);
   }
 
   /**
-   * Log debug level messages
+   * Log debug level messages (development only)
    */
-  debug(message: string, meta?: Record<string, any>): void {
+  debug(
+    message: string,
+    options: {
+      requestId?: string;
+      context?: Record<string, any>;
+      meta?: Record<string, any>;
+    } = {}
+  ): void {
     if (this.isDevelopment) {
-      const entry = this.formatLog('debug', message, meta);
+      const entry = this.formatLog('debug', message, options);
       this.output(entry);
     }
+  }
+
+  /**
+   * Log API request with timing and status
+   */
+  logRequest(
+    requestId: string,
+    method: string,
+    endpoint: string,
+    statusCode: number,
+    duration: number,
+    userId?: string | number,
+    error?: Error
+  ): void {
+    const isError = statusCode >= 400;
+    const logFn = isError ? this.error.bind(this) : this.info.bind(this);
+
+    logFn(`${method} ${endpoint} - ${statusCode}`, error, {
+      requestId,
+      endpoint,
+      method,
+      statusCode,
+      duration,
+      userId,
+      context: {
+        responseTime: `${duration}ms`,
+      },
+    });
   }
 }
 
