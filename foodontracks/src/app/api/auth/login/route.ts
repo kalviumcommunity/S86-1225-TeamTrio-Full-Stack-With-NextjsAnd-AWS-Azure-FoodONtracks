@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import { prisma } from "@/lib/prisma";
 import { generateTokenPair, setTokenCookies } from "@/app/lib/jwtService";
+import { logger } from "@/lib/logger";
+import withLogging from "@/lib/requestLogger";
 
 /**
  * POST /api/auth/login
@@ -14,7 +16,7 @@ import { generateTokenPair, setTokenCookies } from "@/app/lib/jwtService";
  *
  * Tokens stored in HTTP-only cookies for security
  */
-export async function POST(req: Request) {
+export const POST = withLogging(async (req: Request) => {
   try {
     const { email, password } = await req.json();
 
@@ -72,10 +74,10 @@ export async function POST(req: Request) {
     });
   } catch (err: unknown) {
     const error = err as Error;
-    console.error("Login error:", error);
+    logger.error("auth_login_error", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { success: false, message: "Login failed", error: error.message },
       { status: 500 }
     );
   }
-}
+});

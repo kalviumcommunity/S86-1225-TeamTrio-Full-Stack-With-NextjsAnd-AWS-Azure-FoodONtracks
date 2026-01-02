@@ -9,6 +9,8 @@
  * like CloudWatch, DataDog, or Splunk.
  */
 
+import { logger } from "@/lib/logger";
+
 export interface RbacLogEntry {
   allowed: boolean;
   userId?: number;
@@ -63,11 +65,11 @@ export function logRbacDecision(entry: Omit<RbacLogEntry, "timestamp">): void {
     `(IP: ${logEntry.ip})`,
   ].join(" ");
 
-  // Log to console with appropriate level
+  // Emit structured RBAC log
   if (logEntry.allowed) {
-    console.log(logMessage);
+    logger.info("rbac_decision", { ...logEntry });
   } else {
-    console.warn(logMessage);
+    logger.warn("rbac_decision", { ...logEntry });
   }
 
   // In production, also send to external logging service:

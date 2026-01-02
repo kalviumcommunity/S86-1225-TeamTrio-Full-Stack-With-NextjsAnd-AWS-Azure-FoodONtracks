@@ -2,6 +2,7 @@
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { logger } from "@/lib/logger";
 
 // 1. Define validation schema
 const signupSchema = z.object({
@@ -24,7 +25,7 @@ export default function SignupPage() {
   });
 
   const onSubmit = async (data: SignupFormData) => {
-    console.log("Form Submitted:", data);
+    logger.info("signup_form_submitted", { data });
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1000));
     alert(`Welcome, ${data.name}!`);

@@ -28,7 +28,7 @@ sendEmail({
   }),
 }).catch((error) => {
   // Log but don't fail the signup if email fails
-  console.error("Failed to send welcome email:", error);
+  import("@/app/lib/logger").then(({ logger }) => logger.error("failed_send_welcome_email", { error: String(error) }));
 });
 
 // ============================================
@@ -70,7 +70,7 @@ sendEmail({
     })),
   }),
 }).catch((error) => {
-  console.error("Failed to send order confirmation:", error);
+  import("@/app/lib/logger").then(({ logger }) => logger.error("failed_send_order_confirmation", { error: String(error) }));
 });
 
 // ============================================
@@ -122,7 +122,7 @@ sendEmail({
     trackingLink: `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api", "")}/track/${updatedOrder.orderNumber}`,
   }),
 }).catch((error) => {
-  console.error("Failed to send status update:", error);
+  import("@/app/lib/logger").then(({ logger }) => logger.error("failed_send_status_update", { error: String(error) }));
 });
 
 // ============================================
@@ -155,7 +155,7 @@ sendEmail({
     transactionId: payment.transactionId,
   }),
 }).catch((error) => {
-  console.error("Failed to send payment confirmation:", error);
+  import("@/app/lib/logger").then(({ logger }) => logger.error("failed_send_payment_confirmation", { error: String(error) }));
 });
 
 // ============================================
@@ -199,7 +199,7 @@ try {
     });
   } catch (emailError) {
     // Log email error but continue
-    console.error("Email send failed (non-critical):", emailError);
+    logger.error("email_send_failed", { error: emailError instanceof Error ? emailError.message : String(emailError) });
     // Optionally: Store failed email in queue for retry
   }
 

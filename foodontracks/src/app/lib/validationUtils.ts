@@ -22,7 +22,7 @@ export interface ValidatedDataResponse<T> {
  * @returns Object with success flag and either validated data or errors
  */
 export function validateData<T>(
-  schema: ZodSchema,
+  schema: ZodSchema<T>,
   data: unknown
 ): ValidatedDataResponse<T> | ValidationErrorResponse {
   try {
@@ -58,7 +58,7 @@ export function validateData<T>(
  * @returns NextResponse with validation result or error
  */
 export async function validateAndRespond<T>(
-  schema: ZodSchema,
+  schema: ZodSchema<T>,
   data: unknown
 ): Promise<NextResponse> {
   const result = validateData<T>(schema, data);

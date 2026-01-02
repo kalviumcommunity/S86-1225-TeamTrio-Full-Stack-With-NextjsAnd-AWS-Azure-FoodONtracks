@@ -4,6 +4,7 @@ import useSWR, { mutate } from "swr";
 import { fetcher } from "@/lib/fetcher";
 import { useState } from "react";
 import { useUI } from "@/hooks/useUI";
+import { logger } from "@/lib/logger";
 
 interface MenuItem {
   id: number;
@@ -45,8 +46,7 @@ export default function OptimisticUIDemo() {
       available: true,
     };
 
-    console.log("🚀 Optimistic Update: Adding item to UI immediately");
-    console.log("Item:", newItem);
+    logger.info("optimistic_add_start", { item: newItem });
 
     // Step 1: Update UI optimistically (no server call yet)
     mutate(
@@ -59,7 +59,7 @@ export default function OptimisticUIDemo() {
 
     try {
       // Step 2: Make actual API call
-      console.log("📡 Sending POST request to server...");
+      logger.info("optimistic_add_request", { name, price: parseFloat(price) });
       const response = await fetch("/api/menu-items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -77,18 +77,18 @@ export default function OptimisticUIDemo() {
       }
 
       const result = await response.json();
-      console.log("✅ Server confirmed:", result);
+      logger.info("optimistic_add_confirmed", { result });
 
       // Step 3: Revalidate to get real data from server
       await mutate("/api/menu-items");
-      console.log("🔄 Revalidated - Real data synced");
+      logger.info("optimistic_revalidated", {});
 
       // Clear form
       setName("");
       setPrice("");
       setDescription("");
     } catch (error) {
-      console.error("❌ Error adding item:", error);
+      logger.error("optimistic_add_error", { error: String(error) });
       // Rollback on error
       mutate("/api/menu-items");
       alert("Failed to add item. Please try again.");
@@ -99,7 +99,7 @@ export default function OptimisticUIDemo() {
 
   // Optimistic Delete
   const handleOptimisticDelete = async (itemId: number) => {
-    console.log("🗑️ Optimistic Delete: Removing item from UI");
+    logger.info("optimistic_delete_start", { itemId });
 
     // Update UI immediately
     const updatedItems = menuItems.filter((item) => item.id !== itemId);
@@ -115,11 +115,11 @@ export default function OptimisticUIDemo() {
         throw new Error("Failed to delete item");
       }
 
-      console.log("✅ Server confirmed deletion");
+      logger.info("optimistic_delete_confirmed", { itemId });
       // Revalidate to sync
       await mutate("/api/menu-items");
     } catch (error) {
-      console.error("❌ Error deleting item:", error);
+      logger.error("optimistic_delete_error", { error: String(error) });
       // Rollback on error
       mutate("/api/menu-items");
       alert("Failed to delete item. Please try again.");
@@ -128,7 +128,7 @@ export default function OptimisticUIDemo() {
 
   // Optimistic Toggle Availability
   const handleToggleAvailability = async (item: MenuItem) => {
-    console.log("🔄 Optimistic Toggle: Updating availability");
+    logger.info("optimistic_toggle_start", { itemId: item.id });
 
     // Update UI immediately
     const updatedItems = menuItems.map((i) =>
@@ -148,10 +148,10 @@ export default function OptimisticUIDemo() {
         throw new Error("Failed to update availability");
       }
 
-      console.log("✅ Server confirmed availability change");
+      logger.info("optimistic_toggle_confirmed", { itemId: item.id });
       await mutate("/api/menu-items");
     } catch (error) {
-      console.error("❌ Error updating availability:", error);
+      logger.error("optimistic_toggle_error", { error: String(error) });
       // Rollback on error
       mutate("/api/menu-items");
       alert("Failed to update availability. Please try again.");

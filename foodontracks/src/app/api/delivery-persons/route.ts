@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createDeliveryPersonSchema } from "@/lib/schemas/deliveryPersonSchema";
 import { validateData } from "@/lib/validationUtils";
+import { logger } from "@/lib/logger";
+import withLogging from "@/lib/requestLogger";
 
 // GET /api/delivery-persons - Get all delivery persons
-export async function GET(req: NextRequest) {
+export const GET = withLogging(async (req: NextRequest) => {
   try {
     const { searchParams } = new URL(req.url);
     const page = Number(searchParams.get("page")) || 1;
@@ -43,16 +45,16 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error fetching delivery persons:", error);
+    logger.error("delivery_persons_fetch_error", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: "Failed to fetch delivery persons" },
       { status: 500 }
     );
   }
-}
+});
 
 // POST /api/delivery-persons - Create delivery person
-export async function POST(req: NextRequest) {
+export const POST = withLogging(async (req: NextRequest) => {
   try {
     const body = await req.json();
 
@@ -80,10 +82,10 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("Error creating delivery person:", error);
+    logger.error("delivery_person_create_error", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: "Failed to create delivery person" },
       { status: 500 }
     );
   }
-}
+});

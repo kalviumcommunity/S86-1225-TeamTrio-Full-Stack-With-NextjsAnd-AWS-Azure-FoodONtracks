@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import redis from "@/lib/redis";
+import withLogging from "@/lib/requestLogger";
 
-export async function GET() {
+export const GET = withLogging(async () => {
   await redis.set("test-key", "Redis Connected!");
   const value = await redis.get("test-key");
 
@@ -9,4 +10,4 @@ export async function GET() {
     success: true,
     message: value,
   });
-}
+});

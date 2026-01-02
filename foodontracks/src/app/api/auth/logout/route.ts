@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { clearTokenCookies } from "@/app/lib/jwtService";
+import { logger } from "@/lib/logger";
+import withLogging from "@/lib/requestLogger";
 
 /**
  * POST /api/auth/logout
@@ -11,7 +13,7 @@ import { clearTokenCookies } from "@/app/lib/jwtService";
  * - Invalidates cookies on client-side
  * - Client should also clear any stored tokens
  */
-export async function POST() {
+export const POST = withLogging(async (req: Request) => {
   try {
     // Clear authentication cookies
     clearTokenCookies();
@@ -22,19 +24,19 @@ export async function POST() {
     });
   } catch (err: unknown) {
     const error = err as Error;
-    console.error("Logout error:", error);
+    logger.error("auth_logout_error", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { success: false, message: "Logout failed", error: error.message },
       { status: 500 }
     );
   }
-}
+});
 
 /**
  * GET /api/auth/logout
  *
  * Alternative logout via GET (for simple links)
  */
-export async function GET(req: Request) {
-  return POST(req);
-}
+export const GET = withLogging(async (req: Request) => {
+  return POST(req as any);
+});

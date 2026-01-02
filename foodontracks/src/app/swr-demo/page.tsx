@@ -4,6 +4,7 @@ import { useUI } from "@/hooks/useUI";
 import { useSWRConfig } from "swr";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { logger } from "@/lib/logger";
 
 export default function SWRDemoPage() {
   const { isDark } = useUI();
@@ -37,7 +38,7 @@ export default function SWRDemoPage() {
   }, [cache]);
 
   const clearCache = () => {
-    console.log("🗑️ Clearing all SWR cache");
+    logger.info("swr_clear_cache", {});
     if (cache instanceof Map) {
       cache.clear();
     }

@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { updateOrderSchema } from "@/lib/schemas/orderSchema";
 import { validateData } from "@/lib/validationUtils";
+import { logger } from "@/lib/logger";
+import withLogging from "@/lib/requestLogger";
 
 // GET /api/orders/[id]
-export async function GET(
+export const GET = withLogging(async (
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+) => {
   try {
     const { id } = await params;
     const orderId = parseInt(id);
@@ -49,19 +51,19 @@ export async function GET(
 
     return NextResponse.json({ data: order });
   } catch (error) {
-    console.error("Error fetching order:", error);
+    logger.error("error_fetching_order", { error: String(error) });
     return NextResponse.json(
       { error: "Failed to fetch order" },
       { status: 500 }
     );
   }
-}
+});
 
 // PATCH /api/orders/[id] - Update order status
-export async function PATCH(
+export const PATCH = withLogging(async (
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+) => {
   try {
     const { id } = await params;
     const orderId = parseInt(id);
@@ -94,12 +96,10 @@ export async function PATCH(
       const updatedOrder = await tx.order.update({
         where: { id: orderId },
         data: {
-          ...(status && { status }),
-          ...(specialInstructions !== undefined && { specialInstructions }),
-          ...(deliveryPersonId !== undefined && { deliveryPersonId }),
-          ...(status === "DELIVERED" && !existingOrder.actualDeliveryTime && {
-            actualDeliveryTime: new Date(),
-          }),
+          ...(status ? { status } : {}),
+          ...(specialInstructions !== undefined ? { specialInstructions } : {}),
+          ...(deliveryPersonId !== undefined ? { deliveryPersonId } : {}),
+          ...(status === "DELIVERED" && !existingOrder.actualDeliveryTime ? { actualDeliveryTime: new Date() } : {}),
         },
         include: {
           orderItems: {
@@ -128,19 +128,19 @@ export async function PATCH(
       data: order,
     });
   } catch (error) {
-    console.error("Error updating order:", error);
+    logger.error("error_updating_order", { error: String(error) });
     return NextResponse.json(
       { error: "Failed to update order" },
       { status: 500 }
     );
   }
-}
+});
 
 // PUT /api/orders/[id] - Update order status (alias for PATCH)
-export async function PUT(
+export const PUT = withLogging(async (
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+) => {
   try {
     const { id } = await params;
     const orderId = parseInt(id);
@@ -207,89 +207,19 @@ export async function PUT(
       data: order,
     });
   } catch (error) {
-    console.error("Error updating order:", error);
+    logger.error("error_updating_order", { error: String(error) });
     return NextResponse.json(
       { error: "Failed to update order" },
       { status: 500 }
     );
   }
-}
-    if (isNaN(orderId)) {
-      return NextResponse.json({ error: "Invalid order ID" }, { status: 400 });
-    }
-
-    const body = await req.json();
-
-    // Validate input using Zod schema
-    const validationResult = validateData(updateOrderSchema, body);
-    if (!validationResult.success) {
-      return NextResponse.json(validationResult, { status: 400 });
-    }    // Check if order exists
-    const existingOrder = await prisma.order.findUnique({
-      where: { id: orderId },
-    });
-
-    if (!existingOrder) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
-    }
-
-    // Update order and create tracking event in transaction
-    const order = await prisma.$transaction(async (tx) => {
-      const updatedOrder = await tx.order.update({
-        where: { id: orderId },
-        data: {
-          status: status || existingOrder.status,
-          deliveryPersonId:
-            deliveryPersonId !== undefined
-              ? deliveryPersonId
-              : existingOrder.deliveryPersonId,
-          actualDeliveryTime:
-            status === "DELIVERED"
-              ? new Date()
-              : existingOrder.actualDeliveryTime,
-        },
-        include: {
-          orderItems: {
-            include: {
-              menuItem: true,
-            },
-          },
-        },
-      });
-
-      // Create tracking event if status changed
-      if (status && status !== existingOrder.status) {
-        await tx.orderTracking.create({
-          data: {
-            orderId,
-            status,
-            location,
-            notes,
-          },
-        });
-      }
-
-      return updatedOrder;
-    });
-
-    return NextResponse.json({
-      message: "Order updated successfully",
-      data: order,
-    });
-  } catch (error) {
-    console.error("Error updating order:", error);
-    return NextResponse.json(
-      { error: "Failed to update order" },
-      { status: 500 }
-    );
-  }
-}
+});
 
 // DELETE /api/orders/[id] - Cancel order
-export async function DELETE(
+export const DELETE = withLogging(async (
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+) => {
   try {
     const { id } = await params;
     const orderId = parseInt(id);
@@ -337,10 +267,10 @@ export async function DELETE(
       data: order,
     });
   } catch (error) {
-    console.error("Error cancelling order:", error);
+    logger.error("error_cancelling_order", { error: String(error) });
     return NextResponse.json(
       { error: "Failed to cancel order" },
       { status: 500 }
     );
   }
-}
+});

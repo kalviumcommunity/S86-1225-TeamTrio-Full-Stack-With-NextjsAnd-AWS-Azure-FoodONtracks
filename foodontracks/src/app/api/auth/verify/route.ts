@@ -5,6 +5,8 @@ import {
   decodeToken,
   getTokenExpiry,
 } from "@/app/lib/jwtService";
+import { logger } from "@/lib/logger";
+import withLogging from "@/lib/requestLogger";
 
 /**
  * GET /api/auth/verify
@@ -14,7 +16,7 @@ import {
  *
  * Use case: Check authentication status before making protected requests
  */
-export async function GET(req: Request) {
+export const GET = withLogging(async (req: Request) => {
   try {
     const accessToken = getAccessToken(req);
 
@@ -65,19 +67,19 @@ export async function GET(req: Request) {
     }
   } catch (err: unknown) {
     const error = err as Error;
-    console.error("Token verification error:", error);
+    logger.error("auth_verify_error", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { success: false, message: "Verification failed", authenticated: false },
       { status: 500 }
     );
   }
-}
+});
 
 /**
  * POST /api/auth/verify
  *
  * Same as GET, but accepts token in request body
  */
-export async function POST(req: Request) {
-  return GET(req);
-}
+export const POST = withLogging(async (req: Request) => {
+  return GET(req as any);
+});

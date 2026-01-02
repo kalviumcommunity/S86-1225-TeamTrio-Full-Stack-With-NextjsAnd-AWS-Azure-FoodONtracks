@@ -55,6 +55,14 @@ export function middleware(req: NextRequest) {
     }
 
     if (!token) {
+  // Generate or reuse a request id for correlation
+  const existingReqId = req.headers.get("x-request-id");
+  const requestId =
+    existingReqId ||
+    (typeof globalThis !== "undefined" && (globalThis as any).crypto && "randomUUID" in (globalThis as any).crypto
+      ? (globalThis as any).crypto.randomUUID()
+      : `${Date.now()}-${Math.floor(Math.random() * 1e6)}`);
+
       return NextResponse.json(
         {
           success: false,
@@ -63,7 +71,7 @@ export function middleware(req: NextRequest) {
         },
         { status: 401 }
       );
-    }
+    return NextResponse.redirect(httpsUrl, { status: 308, headers: { "x-request-id": requestId } });
 
     try {
       const decoded = jwt.verify(
@@ -77,7 +85,7 @@ export function middleware(req: NextRequest) {
       };
 
       // Check token type
-      if (decoded.type !== "access") {
+    return NextResponse.next({ request: { headers: { "x-request-id": requestId } } });
         return NextResponse.json(
           { success: false, message: "Invalid token type" },
           { status: 401 }

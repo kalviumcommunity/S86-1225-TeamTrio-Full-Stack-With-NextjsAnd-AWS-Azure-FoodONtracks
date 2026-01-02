@@ -1,5 +1,6 @@
 import { SendEmailCommand } from "@aws-sdk/client-ses";
 import { sesClient, SES_EMAIL_SENDER, SES_REPLY_TO } from "./sesClient";
+import { logger } from "@/app/lib/logger";
 
 interface EmailOptions {
   to: string | string[];
@@ -64,9 +65,11 @@ export async function sendEmail(options: EmailOptions): Promise<EmailResult> {
     const command = new SendEmailCommand(params);
     const response = await sesClient.send(command);
 
-    console.log(`✅ Email sent successfully. MessageId: ${response.MessageId}`);
-    console.log(`   To: ${toAddresses.join(", ")}`);
-    console.log(`   Subject: ${subject}`);
+    logger.info("ses_email_sent", {
+      messageId: response.MessageId,
+      to: toAddresses.join(", "),
+      subject,
+    });
 
     return {
       success: true,
@@ -75,8 +78,7 @@ export async function sendEmail(options: EmailOptions): Promise<EmailResult> {
   } catch (error: unknown) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error occurred";
-    console.error("❌ Failed to send email:", errorMessage);
-    console.error("   Error details:", error);
+    logger.error("ses_email_failed", { error: errorMessage, details: error });
 
     return {
       success: false,

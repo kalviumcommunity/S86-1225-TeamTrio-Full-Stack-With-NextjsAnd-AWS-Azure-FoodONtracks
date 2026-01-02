@@ -4,6 +4,7 @@ import useSWR from "swr";
 import { fetcher } from "@/lib/fetcher";
 import { useState } from "react";
 import { useUI } from "@/hooks/useUI";
+import { logger } from "@/lib/logger";
 
 interface User {
   id: number;
@@ -27,7 +28,7 @@ export default function UsersListPage() {
   );
 
   const handleRefresh = () => {
-    console.log("🔄 Manual refresh triggered");
+    logger.info("swr_manual_refresh", {});
     mutate();
   };
 

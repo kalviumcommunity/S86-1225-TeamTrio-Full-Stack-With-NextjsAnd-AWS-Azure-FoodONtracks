@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { logger } from "@/lib/logger";
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -13,7 +14,7 @@ export default function Error({ error, reset }: ErrorProps) {
 
   useEffect(() => {
     // Log the error to an error reporting service
-    console.error("User detail page error:", error);
+    logger.error("user_detail_page_error", { error: String(error) });
   }, [error]);
 
   return (

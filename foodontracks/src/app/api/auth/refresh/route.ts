@@ -6,6 +6,8 @@ import {
   getRefreshToken,
   generateRefreshToken,
 } from "@/app/lib/jwtService";
+import { logger } from "@/lib/logger";
+import withLogging from "@/lib/requestLogger";
 
 /**
  * POST /api/auth/refresh
@@ -21,7 +23,7 @@ import {
  *
  * Security: Implements token rotation to prevent replay attacks
  */
-export async function POST(req: Request) {
+export const POST = withLogging(async (req: Request) => {
   try {
     // Get refresh token from cookie or request body
     let refreshToken = getRefreshToken();
@@ -85,19 +87,19 @@ export async function POST(req: Request) {
     });
   } catch (err: unknown) {
     const error = err as Error;
-    console.error("Token refresh error:", error);
+    logger.error("auth_refresh_error", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { success: false, message: "Token refresh failed", error: error.message },
       { status: 500 }
     );
   }
-}
+});
 
 /**
  * GET /api/auth/refresh
  *
  * Alternative endpoint for GET requests (some clients prefer GET)
  */
-export async function GET(req: Request) {
-  return POST(req);
-}
+export const GET = withLogging(async (req: Request) => {
+  return POST(req as any);
+});

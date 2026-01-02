@@ -4,6 +4,8 @@ import {
   createSuccessResponse,
   createErrorResponse,
 } from "@/app/lib/responseHandler";
+import { logger } from "@/lib/logger";
+import withLogging from "@/lib/requestLogger";
 
 /**
  * POST /api/files
@@ -18,7 +20,7 @@ import {
  * - entityType?: string (optional, e.g., 'menu-item', 'restaurant')
  * - entityId?: number (optional, related entity ID)
  */
-export async function POST(req: NextRequest) {
+export const POST = withLogging(async (req: NextRequest) => {
   try {
     const body = await req.json();
     const { name, url, fileType, fileSize, uploaderId, entityType, entityId } =
@@ -53,7 +55,7 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (error: unknown) {
-    console.error("Error saving file metadata:", error);
+    logger.error("error_saving_file_metadata", { error: String(error) });
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
@@ -65,7 +67,7 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
 /**
  * GET /api/files
@@ -78,7 +80,7 @@ export async function POST(req: NextRequest) {
  * - limit?: number (default: 50)
  * - offset?: number (default: 0)
  */
-export async function GET(req: NextRequest) {
+export const GET = withLogging(async (req: NextRequest) => {
   try {
     const { searchParams } = new URL(req.url);
     const entityType = searchParams.get("entityType");
@@ -124,7 +126,7 @@ export async function GET(req: NextRequest) {
       { status: 200 }
     );
   } catch (error: unknown) {
-    console.error("Error retrieving files:", error);
+    logger.error("error_retrieving_files", { error: String(error) });
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
@@ -136,7 +138,7 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
 /**
  * DELETE /api/files
@@ -145,7 +147,7 @@ export async function GET(req: NextRequest) {
  * Request Body:
  * - ids: number[] (array of file IDs to delete)
  */
-export async function DELETE(req: NextRequest) {
+export const DELETE = withLogging(async (req: NextRequest) => {
   try {
     const body = await req.json();
     const { ids } = body;
@@ -177,7 +179,7 @@ export async function DELETE(req: NextRequest) {
       { status: 200 }
     );
   } catch (error: unknown) {
-    console.error("Error deleting files:", error);
+    logger.error("error_deleting_files", { error: String(error) });
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
@@ -189,4 +191,4 @@ export async function DELETE(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { updateDeliveryPersonSchema } from "@/lib/schemas/deliveryPersonSchema";
 import { validateData } from "@/lib/validationUtils";
+import { logger } from "@/lib/logger";
+import withLogging from "@/lib/requestLogger";
 
 // GET /api/delivery-persons/[id] - Get specific delivery person
-export async function GET(
+export const GET = withLogging(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+) => {
   try {
     const { id } = await params;
     const deliveryPersonId = parseInt(id);
@@ -58,19 +60,19 @@ export async function GET(
 
     return NextResponse.json({ data: deliveryPerson });
   } catch (error) {
-    console.error("Error fetching delivery person:", error);
+    logger.error("delivery_person_fetch_error", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: "Failed to fetch delivery person" },
       { status: 500 }
     );
   }
-}
+});
 
 // PUT /api/delivery-persons/[id] - Update delivery person
-export async function PUT(
+export const PUT = withLogging(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+) => {
   try {
     const { id } = await params;
     const deliveryPersonId = parseInt(id);
@@ -142,19 +144,19 @@ export async function PUT(
       data: updatedDeliveryPerson,
     });
   } catch (error) {
-    console.error("Error updating delivery person:", error);
+    logger.error("delivery_person_update_error", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: "Failed to update delivery person" },
       { status: 500 }
     );
   }
-}
+});
 
 // DELETE /api/delivery-persons/[id] - Delete delivery person
-export async function DELETE(
+export const DELETE = withLogging(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+) => {
   try {
     const { id } = await params;
     const deliveryPersonId = parseInt(id);
@@ -212,10 +214,10 @@ export async function DELETE(
       message: "Delivery person deleted successfully",
     });
   } catch (error) {
-    console.error("Error deleting delivery person:", error);
+    logger.error("delivery_person_delete_error", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: "Failed to delete delivery person" },
       { status: 500 }
     );
   }
-}
+});

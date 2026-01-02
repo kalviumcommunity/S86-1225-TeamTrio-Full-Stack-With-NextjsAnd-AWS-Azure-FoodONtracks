@@ -7,6 +7,7 @@ import {
   ReactNode,
   useEffect,
 } from "react";
+import { logger } from "@/lib/logger";
 
 type Theme = "light" | "dark";
 type Language = "en" | "es" | "fr";
@@ -56,7 +57,7 @@ export function UIProvider({ children }: { children: ReactNode }) {
       const newTheme = prev === "light" ? "dark" : "light";
       localStorage.setItem("theme", newTheme);
       document.documentElement.classList.toggle("dark", newTheme === "dark");
-      console.log("🎨 Theme toggled to:", newTheme);
+      logger.info("theme_toggled", { newTheme });
       return newTheme;
     });
   };
@@ -65,12 +66,12 @@ export function UIProvider({ children }: { children: ReactNode }) {
     setThemeState(newTheme);
     localStorage.setItem("theme", newTheme);
     document.documentElement.classList.toggle("dark", newTheme === "dark");
-    console.log("🎨 Theme set to:", newTheme);
+    logger.info("theme_set", { newTheme });
   };
 
   const toggleSidebar = () => {
     setSidebarOpen((prev) => {
-      console.log(prev ? "📕 Sidebar closed" : "📖 Sidebar opened");
+      logger.info("sidebar_toggled", { open: !prev });
       return !prev;
     });
   };
@@ -78,16 +79,14 @@ export function UIProvider({ children }: { children: ReactNode }) {
   const setLanguageHandler = (lang: Language) => {
     setLanguage(lang);
     localStorage.setItem("language", lang);
-    console.log("🌐 Language changed to:", lang);
+    logger.info("language_changed", { lang });
   };
 
   const toggleNotifications = () => {
     setNotifications((prev) => {
       const newValue = !prev;
       localStorage.setItem("notifications", newValue.toString());
-      console.log(
-        newValue ? "🔔 Notifications enabled" : "🔕 Notifications disabled"
-      );
+      logger.info("notifications_toggled", { enabled: newValue });
       return newValue;
     });
   };

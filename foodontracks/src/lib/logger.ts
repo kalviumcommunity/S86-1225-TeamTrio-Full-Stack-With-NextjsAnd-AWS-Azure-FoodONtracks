@@ -1,112 +1,66 @@
-/**
- * Structured Logger Utility
- * Provides consistent, environment-aware logging across the application
- * Supports JSON output for production monitoring and detailed logs for development
- */
+export type LogMeta = Record<string, unknown>;
+
+export function genRequestId(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
+}
 
 type LogLevel = 'info' | 'error' | 'warn' | 'debug';
-
-interface LogEntry {
-  level: LogLevel;
-  message: string;
-  timestamp: string;
-  environment: string;
-  requestId?: string;
-  userId?: string | number;
-  context?: string;
-  meta?: Record<string, any>;
-  stack?: string;
-}
 
 class Logger {
   private isDevelopment = process.env.NODE_ENV === 'development';
 
-  /**
-   * Format log entry as JSON
-   */
-  private formatLog(
-    level: LogLevel,
-    message: string,
-    meta?: Record<string, any>,
-    stack?: string
-  ): LogEntry {
+  private formatLog(level: LogLevel, message: string, meta?: LogMeta, stack?: string) {
     return {
       level,
       message,
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV || 'development',
       meta,
-      ...(stack && { stack }),
-    };
+      ...(stack ? { stack } : {}),
+    } as const;
   }
 
-  /**
-   * Output log to console (development) or external service (production)
-   */
-  private output(entry: LogEntry): void {
+  private output(entry: ReturnType<Logger['formatLog']>): void {
     if (this.isDevelopment) {
-      // Development: Pretty print with colors
-      const colors = {
-        info: '\x1b[36m',     // Cyan
-        error: '\x1b[31m',    // Red
-        warn: '\x1b[33m',     // Yellow
-        debug: '\x1b[35m',    // Magenta
+      const colors: Record<LogLevel, string> = {
+        info: '\x1b[36m',
+        error: '\x1b[31m',
+        warn: '\x1b[33m',
+        debug: '\x1b[35m',
       };
       const reset = '\x1b[0m';
 
-      console.log(
-        `${colors[entry.level]}[${entry.level.toUpperCase()}]${reset} ${entry.message}`,
-        entry.meta || ''
-      );
-
-      if (entry.stack) {
-        console.error(`${colors.error}${entry.stack}${reset}`);
+      // Pretty output in development
+      // eslint-disable-next-line no-console
+      console.log(`${colors[entry.level]}[${entry.level.toUpperCase()}]${reset} ${entry.message}`, entry.meta || '');
+      if ((entry as any).stack) {
+        // eslint-disable-next-line no-console
+        console.error((entry as any).stack);
       }
     } else {
-      // Production: JSON output (can be sent to external service like Sentry, CloudWatch, etc.)
+      // Production: emit JSON for log collectors
+      // eslint-disable-next-line no-console
       console.log(JSON.stringify(entry));
-
-      // TODO: Integrate with external monitoring services
-      // - Sentry.captureException() for errors
-      // - CloudWatch for metrics
-      // - DataDog for distributed tracing
     }
   }
 
-  /**
-   * Log info level messages
-   */
-  info(message: string, meta?: Record<string, any>): void {
-    const entry = this.formatLog('info', message, meta);
-    this.output(entry);
+  info(message: string, meta?: LogMeta) {
+    this.output(this.formatLog('info', message, meta));
   }
 
-  /**
-   * Log error level messages
-   */
-  error(message: string, meta?: Record<string, any>, stack?: string): void {
-    const entry = this.formatLog('error', message, meta, stack);
-    this.output(entry);
+  error(message: string, meta?: LogMeta, stack?: string) {
+    this.output(this.formatLog('error', message, meta, stack));
   }
 
-  /**
-   * Log warning level messages
-   */
-  warn(message: string, meta?: Record<string, any>): void {
-    const entry = this.formatLog('warn', message, meta);
-    this.output(entry);
+  warn(message: string, meta?: LogMeta) {
+    this.output(this.formatLog('warn', message, meta));
   }
 
-  /**
-   * Log debug level messages
-   */
-  debug(message: string, meta?: Record<string, any>): void {
-    if (this.isDevelopment) {
-      const entry = this.formatLog('debug', message, meta);
-      this.output(entry);
-    }
+  debug(message: string, meta?: LogMeta) {
+    if (this.isDevelopment) this.output(this.formatLog('debug', message, meta));
   }
 }
 
-// Export singleton instance
 export const logger = new Logger();
+
+export default logger;

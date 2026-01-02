@@ -11,6 +11,8 @@ import {
   createSuccessResponse,
   createErrorResponse,
 } from "@/app/lib/responseHandler";
+import { logger } from "@/lib/logger";
+import withLogging from "@/lib/requestLogger";
 
 /**
  * POST /api/upload
@@ -29,7 +31,7 @@ import {
  * - publicURL: string (public URL after upload)
  * - expiresIn: number (URL expiry time in seconds)
  */
-export async function POST(req: NextRequest) {
+export const POST = withLogging(async (req: NextRequest) => {
   try {
     const body = await req.json();
     const { filename, fileType, fileSize, entityType, entityId } = body;
@@ -111,7 +113,7 @@ export async function POST(req: NextRequest) {
       { status: 200 }
     );
   } catch (error: unknown) {
-    console.error("Error generating pre-signed URL:", error);
+    logger.error("upload_presign_error", { error: String(error) });
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
@@ -123,13 +125,13 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
 /**
  * GET /api/upload
  * Returns upload configuration and limits
  */
-export async function GET() {
+export const GET = withLogging(async () => {
   try {
     return NextResponse.json(
       createSuccessResponse(
@@ -161,4 +163,4 @@ export async function GET() {
       { status: 500 }
     );
   }
-}
+});

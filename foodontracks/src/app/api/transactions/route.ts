@@ -2,8 +2,10 @@ import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { createPaymentSchema } from '@/lib/schemas/paymentSchema';
 import { validateData } from '@/lib/validationUtils';
+import { logger } from '@/lib/logger';
+import withLogging from '@/lib/requestLogger';
 
-export async function POST(request: Request) {
+export const POST = withLogging(async (request: Request) => {
   const body = await request.json();
 
   // For transaction endpoint, we'll validate the payment method and amount only
@@ -72,6 +74,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, result });
   } catch (error: any) {
+    logger.error('transaction_create_error', { error: error?.message || String(error) });
     return NextResponse.json({ ok: false, error: error.message }, { status: 400 });
   }
-}
+});

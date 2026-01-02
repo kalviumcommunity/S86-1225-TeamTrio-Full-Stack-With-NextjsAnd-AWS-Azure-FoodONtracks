@@ -23,6 +23,7 @@ import {
   UserRole,
 } from "@/config/roles";
 import { logRbacDecision } from "./rbacLogger";
+import { logger } from "@/lib/logger";
 
 /**
  * Extended request type with user information
@@ -84,7 +85,7 @@ export function extractAndVerifyToken(
     const payload = verifyAccessToken(token);
     return payload;
   } catch (error) {
-    console.error("[RBAC] Token verification failed:", error);
+    logger.error("[RBAC] Token verification failed", { error: String(error) });
     return null;
   }
 }

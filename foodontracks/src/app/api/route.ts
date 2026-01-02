@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import AWS from "aws-sdk";
+import withLogging from "@/lib/requestLogger";
 
 const s3 = new AWS.S3({
   region: process.env.AWS_REGION,
@@ -8,8 +9,7 @@ const s3 = new AWS.S3({
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
 });
-
-export async function GET(req: Request) {
+export const GET = withLogging(async (req: Request) => {
   const { searchParams } = new URL(req.url);
   const fileName = searchParams.get("fileName");
   const fileType = searchParams.get("fileType");
@@ -26,4 +26,4 @@ export async function GET(req: Request) {
   });
 
   return NextResponse.json({ uploadUrl });
-}
+});

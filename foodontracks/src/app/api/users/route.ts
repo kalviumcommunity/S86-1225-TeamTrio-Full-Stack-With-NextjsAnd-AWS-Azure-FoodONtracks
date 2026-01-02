@@ -12,6 +12,7 @@ import { NextResponse } from "next/server";
 import { withRbac, AuthenticatedRequest } from "@/middleware/rbac";
 import { prisma } from "@/app/lib/prisma";
 import bcrypt from "bcryptjs";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/users
@@ -71,7 +72,7 @@ export const GET = withRbac(
         total: users.length,
       });
     } catch (error) {
-      console.error("[Users API] GET error:", error);
+      logger.error("users_api_get_error", { error: String(error) });
       return NextResponse.json(
         { success: false, error: "Failed to fetch users" },
         { status: 500 }
@@ -149,7 +150,7 @@ export const POST = withRbac(
         { status: 201 }
       );
     } catch (error) {
-      console.error("[Users API] POST error:", error);
+      logger.error("users_api_post_error", { error: String(error) });
       return NextResponse.json(
         { success: false, error: "Failed to create user" },
         { status: 500 }
@@ -215,7 +216,7 @@ export const PUT = withRbac(
         message: "User updated successfully",
       });
     } catch (error) {
-      console.error("[Users API] PUT error:", error);
+      logger.error("users_api_put_error", { error: String(error) });
       return NextResponse.json(
         { success: false, error: "Failed to update user" },
         { status: 500 }
@@ -259,7 +260,7 @@ export const DELETE = withRbac(
         message: "User deleted successfully",
       });
     } catch (error) {
-      console.error("[Users API] DELETE error:", error);
+      logger.error("users_api_delete_error", { error: String(error) });
       return NextResponse.json(
         { success: false, error: "Failed to delete user" },
         { status: 500 }

@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createAddressSchema } from "@/lib/schemas/addressSchema";
 import { validateData } from "@/lib/validationUtils";
+import { logger } from "@/lib/logger";
+import withLogging from "@/lib/requestLogger";
 
 // GET /api/addresses
-export async function GET(req: NextRequest) {
+export const GET = withLogging(async (req: NextRequest) => {
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
@@ -23,16 +25,16 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ data: addresses });
   } catch (error) {
-    console.error("Error fetching addresses:", error);
+    logger.error("addresses_fetch_error", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: "Failed to fetch addresses" },
       { status: 500 }
     );
   }
-}
+});
 
 // POST /api/addresses
-export async function POST(req: NextRequest) {
+export const POST = withLogging(async (req: NextRequest) => {
   try {
     const body = await req.json();
 
@@ -51,7 +53,7 @@ export async function POST(req: NextRequest) {
       zipCode,
       country,
       isDefault,
-    } = validationResult.data;
+    } = validationResult.data as any;
 
     // If setting as default, unset other defaults
     if (isDefault) {
@@ -79,10 +81,10 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("Error creating address:", error);
+    logger.error("address_create_error", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: "Failed to create address" },
       { status: 500 }
     );
   }
-}
+});

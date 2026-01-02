@@ -7,6 +7,7 @@ import {
   ReactNode,
   useEffect,
 } from "react";
+import { logger } from "@/lib/logger";
 
 interface User {
   id: string;
@@ -30,11 +31,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
     if (typeof window === "undefined") return null;
     const storedUser = localStorage.getItem("authUser");
-    if (storedUser) {
+      if (storedUser) {
       try {
         return JSON.parse(storedUser);
       } catch (error) {
-        console.error("Failed to parse stored user:", error);
+        logger.error("failed_parse_stored_user", { error: String(error) });
         localStorage.removeItem("authUser");
       }
     }
@@ -51,13 +52,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     setUser(newUser);
     localStorage.setItem("authUser", JSON.stringify(newUser));
-    console.log("✅ User logged in:", username, "| Role:", role);
+    logger.info("user_logged_in", { username, role });
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem("authUser");
-    console.log("🚪 User logged out");
+    logger.info("user_logged_out", {});
   };
 
   const updateUser = (userData: Partial<User>) => {
@@ -65,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const updatedUser = { ...user, ...userData };
       setUser(updatedUser);
       localStorage.setItem("authUser", JSON.stringify(updatedUser));
-      console.log("🔄 User updated:", updatedUser);
+      logger.info("user_updated", { user: updatedUser });
     }
   };
 

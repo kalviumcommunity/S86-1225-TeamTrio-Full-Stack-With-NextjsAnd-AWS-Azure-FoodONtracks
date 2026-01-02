@@ -4,15 +4,17 @@ import {
   createSuccessResponse,
   createErrorResponse,
 } from "@/app/lib/responseHandler";
+import { logger } from "@/lib/logger";
+import withLogging from "@/lib/requestLogger";
 
 /**
  * GET /api/files/[id]
  * Retrieves a single file by ID
  */
-export async function GET(
+export const GET = withLogging(async (
   req: NextRequest,
   { params }: { params: { id: string } }
-) {
+) => {
   try {
     const fileId = parseInt(params.id);
 
@@ -39,7 +41,7 @@ export async function GET(
       { status: 200 }
     );
   } catch (error: unknown) {
-    console.error("Error retrieving file:", error);
+    logger.error("error_retrieving_file", { error: String(error) });
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
@@ -51,16 +53,16 @@ export async function GET(
       { status: 500 }
     );
   }
-}
+});
 
 /**
  * PATCH /api/files/[id]
  * Updates file metadata
  */
-export async function PATCH(
+export const PATCH = withLogging(async (
   req: NextRequest,
   { params }: { params: { id: string } }
-) {
+) => {
   try {
     const fileId = parseInt(params.id);
 
@@ -101,7 +103,7 @@ export async function PATCH(
       { status: 200 }
     );
   } catch (error: unknown) {
-    console.error("Error updating file:", error);
+    logger.error("error_updating_file", { error: String(error) });
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
@@ -113,17 +115,17 @@ export async function PATCH(
       { status: 500 }
     );
   }
-}
+});
 
 /**
  * DELETE /api/files/[id]
  * Deletes a file by ID
  * Note: This only deletes the database record, not the actual file from S3
  */
-export async function DELETE(
+export const DELETE = withLogging(async (
   req: NextRequest,
   { params }: { params: { id: string } }
-) {
+) => {
   try {
     const fileId = parseInt(params.id);
 
@@ -156,7 +158,7 @@ export async function DELETE(
       { status: 200 }
     );
   } catch (error: unknown) {
-    console.error("Error deleting file:", error);
+    logger.error("error_deleting_file", { error: String(error) });
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
@@ -168,4 +170,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
-}
+});

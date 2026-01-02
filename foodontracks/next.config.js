@@ -1,7 +1,12 @@
 ﻿/** next.config.js */
+const path = require('path');
+
 const nextConfig = {
   reactStrictMode: true,
-  // swcMinify is now default in Next.js 16 and deprecated as config option
+  // Ensure Turbopack uses the project folder as root to resolve path aliases
+  turbopack: {
+    root: __dirname,
+  },
 };
 
 module.exports = nextConfig;

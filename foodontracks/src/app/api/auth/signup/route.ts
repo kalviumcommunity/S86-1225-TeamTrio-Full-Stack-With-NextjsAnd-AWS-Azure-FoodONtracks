@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
+import withLogging from '@/lib/requestLogger';
 
-export async function POST(req: Request) {
+export const POST = withLogging(async (req: Request) => {
   try {
     const body = await req.json();
     const { name, email, password } = body;
@@ -25,6 +27,7 @@ export async function POST(req: Request) {
     const safeUser = { id: user.id, name: user.name, email: user.email, role: user.role };
     return NextResponse.json({ success: true, message: 'Signup successful', user: safeUser });
   } catch (err: any) {
+    logger.error('auth_signup_error', { error: err?.message || String(err) });
     return NextResponse.json({ success: false, message: 'Signup failed', error: err.message }, { status: 500 });
   }
-}
+});

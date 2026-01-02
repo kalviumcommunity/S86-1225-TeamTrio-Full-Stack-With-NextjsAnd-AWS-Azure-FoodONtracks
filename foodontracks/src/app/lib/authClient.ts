@@ -7,6 +7,7 @@
  * - In-memory token storage (optional)
  * - Secure HTTP-only cookie support
  */
+import { logger } from "@/lib/logger";
 
 // In-memory token storage (for non-browser clients)
 let accessToken: string | null = null;
@@ -98,7 +99,7 @@ export async function refreshAccessToken(): Promise<string | null> {
     });
 
     if (!response.ok) {
-      console.error("Token refresh failed:", response.status);
+      logger.error("token_refresh_failed", { status: response.status });
       clearTokens();
 
       // Redirect to login if refresh fails
@@ -124,7 +125,7 @@ export async function refreshAccessToken(): Promise<string | null> {
 
     return null;
   } catch (error) {
-    console.error("Token refresh error:", error);
+    logger.error("token_refresh_error", { error: String(error) });
     clearTokens();
     return null;
   }
@@ -177,7 +178,7 @@ export async function logout(): Promise<void> {
       credentials: "include",
     });
   } catch (error) {
-    console.error("Logout error:", error);
+    logger.error("logout_error", { error: String(error) });
   } finally {
     clearTokens();
 

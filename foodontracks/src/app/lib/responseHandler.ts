@@ -136,7 +136,39 @@ export const handleAPIRoute = async <T = unknown>(
     const data = await handler();
     return sendSuccess(data, successMessage);
   } catch (error) {
-    console.error(`[${errorCode}] ${errorMessage}:`, error);
+    // Use application logger for structured error reporting
+    // Importing here to avoid circular import at module top-level
+    const { logger } = await import("@/app/lib/logger");
+    logger.error(`${errorCode} ${errorMessage}`, { error: String(error) });
     return sendError(errorMessage, errorCode, 500, error);
   }
 };
+
+// Backwards-compatible helpers: return plain response payloads (not NextResponse)
+export const createSuccessResponse = <T = unknown>(
+  data: T,
+  message = "Success"
+): SuccessResponse<T> => ({
+  success: true,
+  message,
+  data,
+  timestamp: new Date().toISOString(),
+});
+
+export const createErrorResponse = (
+  message = "Something went wrong",
+  code = "INTERNAL_ERROR",
+  details?: unknown
+): ErrorResponse => ({
+  success: false,
+  message,
+  error: {
+    code,
+    details: details
+      ? typeof details === "object" && details !== null && "message" in details
+        ? (details as { message: string }).message
+        : details
+      : undefined,
+  },
+  timestamp: new Date().toISOString(),
+});

@@ -14,6 +14,7 @@ import {
   getSuspiciousActivity,
   exportRbacLogs,
 } from "@/middleware/rbacLogger";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/admin/rbac-logs
@@ -82,7 +83,7 @@ export const GET = withAdmin(async (request: NextRequest) => {
         });
     }
   } catch (error) {
-    console.error("[RBAC Logs API] Error:", error);
+    logger.error("rbac_logs_fetch_error", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       {
         success: false,

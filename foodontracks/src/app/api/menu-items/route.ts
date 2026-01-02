@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import withLogging from "@/lib/requestLogger";
 
 // Mock menu items data for demo purposes
 const mockMenuItems = [
@@ -41,21 +43,21 @@ const mockMenuItems = [
 ];
 
 // GET /api/menu-items - Get all menu items
-export async function GET() {
+export const GET = withLogging(async () => {
   // Simulate network delay
   await new Promise((resolve) => setTimeout(resolve, 200));
 
-  console.log("📡 Fetching menu items from mock data");
+  logger.info("fetch_menu_items_mock", {});
 
   return NextResponse.json({
     data: mockMenuItems,
     total: mockMenuItems.length,
     timestamp: new Date().toISOString(),
   });
-}
+});
 
 // POST /api/menu-items - Create a new menu item
-export async function POST(req: NextRequest) {
+export const POST = withLogging(async (req: NextRequest) => {
   try {
     const body = await req.json();
 
@@ -74,7 +76,7 @@ export async function POST(req: NextRequest) {
 
     mockMenuItems.push(newItem);
 
-    console.log("✅ Created new menu item:", newItem);
+    logger.info("menu_item_created", { newItem });
 
     return NextResponse.json(
       {
@@ -84,10 +86,10 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("Error creating menu item:", error);
+    logger.error("error_creating_menu_item", { error: String(error) });
     return NextResponse.json(
       { error: "Failed to create menu item" },
       { status: 500 }
     );
   }
-}
+});

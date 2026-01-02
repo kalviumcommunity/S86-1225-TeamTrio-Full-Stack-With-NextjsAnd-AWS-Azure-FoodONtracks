@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createReviewSchema } from "@/lib/schemas/reviewSchema";
 import { validateData } from "@/lib/validationUtils";
+import { logger } from "@/lib/logger";
+import { withLogging } from "@/lib/requestLogger";
 
 // GET /api/reviews - Get all reviews with pagination
-export async function GET(req: NextRequest) {
+async function GET_handler(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const page = Number(searchParams.get("page")) || 1;
@@ -64,16 +66,17 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error fetching reviews:", error);
+    logger.error("error_fetching_reviews", { error: String(error) });
     return NextResponse.json(
       { error: "Failed to fetch reviews" },
       { status: 500 }
     );
   }
 }
+export const GET = withLogging(GET_handler);
 
 // POST /api/reviews - Create a review
-export async function POST(req: NextRequest) {
+async function POST_handler(req: NextRequest) {
   try {
     const body = await req.json();
 
@@ -144,10 +147,12 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("Error creating review:", error);
+    logger.error("error_creating_review", { error: String(error) });
     return NextResponse.json(
       { error: "Failed to create review" },
       { status: 500 }
     );
   }
 }
+
+export const POST = withLogging(POST_handler);

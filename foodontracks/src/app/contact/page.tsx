@@ -4,6 +4,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import FormInput from "@/components/ui/FormInput";
 import Link from "next/link";
+import { logger } from "@/lib/logger";
 
 // Define validation schema
 const contactSchema = z.object({
@@ -26,7 +27,7 @@ export default function ContactForm() {
   });
 
   const onSubmit = async (data: ContactFormData) => {
-    console.log("Contact Form Submitted:", data);
+    logger.info("contact_form_submitted", { data });
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1000));
     alert("Message Sent Successfully!");

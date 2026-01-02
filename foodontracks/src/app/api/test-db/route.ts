@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
+import withLogging from '@/lib/requestLogger';
 
-export async function GET() {
+export const GET = withLogging(async () => {
   // Check if DATABASE_URL is set
   const databaseUrl = process.env.DATABASE_URL;
 
@@ -83,4 +84,4 @@ export async function GET() {
       { status: 500 }
     );
   }
-}
+});

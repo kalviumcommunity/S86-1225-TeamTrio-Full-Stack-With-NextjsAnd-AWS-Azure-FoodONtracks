@@ -8,6 +8,7 @@
  */
 
 import sendgrid from "@sendgrid/mail";
+import { logger } from "@/app/lib/logger";
 
 // Initialize SendGrid
 if (process.env.SENDGRID_API_KEY) {
@@ -52,10 +53,11 @@ export async function sendEmailWithSendGrid(
 
     const response = await sendgrid.send(emailData);
 
-    console.log(`✅ Email sent via SendGrid`);
-    console.log(`   Status: ${response[0].statusCode}`);
-    console.log(`   To: ${Array.isArray(to) ? to.join(", ") : to}`);
-    console.log(`   Subject: ${subject}`);
+    logger.info("sendgrid_email_sent", {
+      status: response[0].statusCode,
+      to: Array.isArray(to) ? to.join(", ") : to,
+      subject,
+    });
 
     return {
       success: true,
@@ -64,7 +66,7 @@ export async function sendEmailWithSendGrid(
   } catch (error: unknown) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
-    console.error("❌ SendGrid email failed:", errorMessage);
+    logger.error("sendgrid_email_failed", { error: errorMessage });
 
     return {
       success: false,

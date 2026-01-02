@@ -10,7 +10,7 @@ interface ErrorProps {
 export default function Error({ error, reset }: ErrorProps) {
   useEffect(() => {
     // Log the error to an error reporting service
-    console.error("Dashboard error:", error);
+    logger.error("dashboard_error", { error: String(error) });
   }, [error]);
 
   return (

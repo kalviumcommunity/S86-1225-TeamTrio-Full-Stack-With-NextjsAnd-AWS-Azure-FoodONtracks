@@ -4,6 +4,7 @@
  */
 
 import { Pool, PoolClient } from 'pg';
+import { logger } from '@/lib/logger';
 
 interface PoolConfig {
   connectionString: string;
@@ -42,7 +43,7 @@ export function initializePool(config?: PoolConfig): Pool {
 
   // Error handler
   pool.on('error', (err) => {
-    console.error('Unexpected error on idle client', err);
+    logger.error('Unexpected error on idle client', { error: String(err) });
   });
 
   return pool;
@@ -120,10 +121,10 @@ export async function getRows<T = any>(
 export async function testConnection(): Promise<boolean> {
   try {
     const result = await executeQuery('SELECT NOW()');
-    console.log('✅ Database connection successful:', result.rows[0]);
+    logger.info('database_connection_success', { result: result.rows[0] });
     return true;
   } catch (error) {
-    console.error('❌ Database connection failed:', error);
+    logger.error('database_connection_failed', { error: String(error) });
     return false;
   }
 }

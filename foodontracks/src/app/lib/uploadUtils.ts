@@ -98,7 +98,7 @@ export async function uploadFile(
     });
 
     if (!metadataResponse.ok) {
-      console.warn("File uploaded but metadata save failed");
+      logger.warn("upload_metadata_save_failed", { fileKey });
       return {
         success: true,
         fileUrl: publicURL,
@@ -114,7 +114,7 @@ export async function uploadFile(
       fileId: metadataData.data.id,
     };
   } catch (error: unknown) {
-    console.error("Upload error:", error);
+    logger.error("upload_error", { error: error instanceof Error ? error.message : String(error) });
     const errorMessage =
       error instanceof Error
         ? error.message
@@ -194,7 +194,7 @@ export async function getUploadConfig() {
     const data = await response.json();
     return data.data;
   } catch (error: unknown) {
-    console.error("Error fetching upload config:", error);
+    logger.error("upload_config_fetch_error", { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
@@ -211,7 +211,7 @@ export async function deleteFile(fileId: number): Promise<boolean> {
     });
     return response.ok;
   } catch (error) {
-    console.error("Error deleting file:", error);
+    logger.error("upload_delete_error", { error: error instanceof Error ? error.message : String(error) });
     return false;
   }
 }
@@ -230,7 +230,7 @@ export async function getFileMetadata(fileId: number) {
     const data = await response.json();
     return data.data;
   } catch (error) {
-    console.error("Error fetching file metadata:", error);
+    logger.error("upload_metadata_fetch_error", { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }

@@ -4,9 +4,11 @@ import { sendSuccess, sendError } from "@/lib/responseHandler";
 import { ERROR_CODES } from "@/lib/errorCodes";
 import { createOrderSchema } from "@/lib/schemas/orderSchema";
 import { validateData } from "@/lib/validationUtils";
+import { logger } from "@/lib/logger";
+import withLogging from "@/lib/requestLogger";
 
 // GET /api/orders - Get all orders with pagination
-export async function GET(req: NextRequest) {
+export const GET = withLogging(async (req: NextRequest) => {
   try {
     const { searchParams } = new URL(req.url);
     const page = Number(searchParams.get("page")) || 1;
@@ -89,7 +91,7 @@ export async function GET(req: NextRequest) {
       "Orders fetched successfully"
     );
   } catch (error) {
-    console.error("Error fetching orders:", error);
+    logger.error("error_fetching_orders", { error: String(error) });
     return sendError(
       "Failed to fetch orders",
       ERROR_CODES.DATABASE_FAILURE,
@@ -97,10 +99,10 @@ export async function GET(req: NextRequest) {
       error
     );
   }
-}
+});
 
 // POST /api/orders - Create a new order
-export async function POST(req: NextRequest) {
+export const POST = withLogging(async (req: NextRequest) => {
   try {
     const body = await req.json();
 
@@ -207,7 +209,7 @@ export async function POST(req: NextRequest) {
 
     return sendSuccess(order, "Order created successfully", 201);
   } catch (error) {
-    console.error("Error creating order:", error);
+    logger.error("error_creating_order", { error: String(error) });
     return sendError(
       "Failed to create order",
       ERROR_CODES.DATABASE_FAILURE,
@@ -215,4 +217,4 @@ export async function POST(req: NextRequest) {
       error
     );
   }
-}
+});

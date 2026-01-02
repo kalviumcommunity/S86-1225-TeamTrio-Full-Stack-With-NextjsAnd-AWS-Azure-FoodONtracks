@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { uploadFile, validateFileBeforeUpload } from "@/app/lib/uploadUtils";
+import { logger } from "@/lib/logger";
 
 /**
  * File Upload Component
@@ -57,14 +58,14 @@ export default function FileUploadComponent() {
       setUploadResult(result);
 
       if (result.success) {
-        console.log("File uploaded successfully:", result.fileUrl);
+        logger.info("file_upload_success", { fileUrl: result.fileUrl });
         // Reset file input
         setSelectedFile(null);
       } else {
-        console.error("Upload failed:", result.error);
+        logger.error("file_upload_failed", { error: result.error });
       }
     } catch (error) {
-      console.error("Upload error:", error);
+      logger.error("file_upload_error", { error: String(error) });
       setUploadResult({
         success: false,
         error: "An unexpected error occurred",
