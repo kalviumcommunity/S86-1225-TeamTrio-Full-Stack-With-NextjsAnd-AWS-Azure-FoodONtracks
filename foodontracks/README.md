@@ -378,6 +378,24 @@ Notes:
 - Add tests under `__tests__/` or alongside components in `src/`.
 - The Jest setup file (`jest.setup.js`) registers `@testing-library/jest-dom` matchers for readable assertions.
 
+## CI Pipeline
+
+- **Workflow file:** `.github/workflows/ci.yml` (root of repository)
+- **Stages:** Lint → Test (with coverage) → Build → Deploy (placeholder)
+- **How it runs:** The workflow triggers on `push` and `pull_request` for `main` and `develop`, and can be run manually via `workflow_dispatch`.
+- **Commands executed (working dir: `foodontracks`):
+
+```bash
+npm ci
+npm run lint
+npm test -- --coverage
+npm run build
+```
+
+- **Secrets:** Add provider credentials (e.g. `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`) in GitHub → Settings → Secrets to enable real deployments.
+
+See `.github/workflows/ci.yml` for the full workflow. The CI uploads the coverage artifact for inspection in case of failure.
+
 Reflection:
 - Unit tests offer fast, focused feedback on logic and components.
 - Integration tests validate module interactions and mock external APIs.
