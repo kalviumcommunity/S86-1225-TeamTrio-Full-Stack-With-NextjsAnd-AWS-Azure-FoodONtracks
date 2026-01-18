@@ -12,11 +12,11 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 // GET /api/restaurants/[id]/menu - Get menu items for a restaurant
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await dbConnect();
-    const restaurantId = params.id;
+    const { id: restaurantId } = await params;
 
     const menuItems = await MenuItem.find({ restaurantId })
       .sort({ category: 1, name: 1 })
@@ -39,7 +39,7 @@ export async function GET(
 // POST /api/restaurants/[id]/menu - Add menu item (Restaurant Owner only)
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const token = await getAccessToken();
@@ -53,7 +53,7 @@ export async function POST(
       restaurantId?: string;
     };
 
-    const restaurantId = params.id;
+    const { id: restaurantId } = await params;
 
     // Verify restaurant owner
     if (decoded.role === UserRole.RESTAURANT_OWNER) {
@@ -103,9 +103,11 @@ export async function POST(
     });
 
     logger.info('menu_item_created', {
-      menuItemId: menuItem._id,
-      restaurantId,
-      createdBy: decoded.userId,
+      context: {
+        menuItemId: menuItem._id,
+        restaurantId,
+        createdBy: decoded.userId,
+      }
     });
 
     return NextResponse.json({
@@ -125,7 +127,7 @@ export async function POST(
 // DELETE /api/restaurants/[id]/menu?itemId=xxx - Delete menu item
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const token = await getAccessToken();
@@ -139,7 +141,7 @@ export async function DELETE(
       restaurantId?: string;
     };
 
-    const restaurantId = params.id;
+    const { id: restaurantId } = await params;
     const { searchParams } = new URL(req.url);
     const itemId = searchParams.get('itemId');
 
@@ -180,9 +182,11 @@ export async function DELETE(
     }
 
     logger.info('menu_item_deleted', {
-      menuItemId: itemId,
-      restaurantId,
-      deletedBy: decoded.userId,
+      context: {
+        menuItemId: itemId,
+        restaurantId,
+        deletedBy: decoded.userId,
+      }
     });
 
     return NextResponse.json({

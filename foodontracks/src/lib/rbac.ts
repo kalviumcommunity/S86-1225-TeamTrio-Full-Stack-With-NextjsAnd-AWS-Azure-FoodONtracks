@@ -3,7 +3,7 @@
  * FoodONtracks - Indian Railway Catering Platform
  */
 
-import { UserRole, ROLE_LEVELS, ROLE_EMAIL_RULES } from '@/types/user';
+import { UserRole, ROLE_LEVELS } from '@/types/user';
 
 // Permission Matrix Type
 export type Resource =
@@ -244,6 +244,7 @@ export function getDashboardPath(role: UserRole): string {
     [UserRole.ADMIN]: '/dashboard/admin',
     [UserRole.RESTAURANT_OWNER]: '/dashboard/restaurant',
     [UserRole.CUSTOMER]: '/dashboard/customer',
+    [UserRole.DELIVERY_GUY]: '/dashboard/delivery',
   };
   
   return paths[role] || '/';

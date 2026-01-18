@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import InputField from '@/components/ui/InputField';
@@ -58,7 +58,7 @@ export default function BatchTrackingPage() {
   const [autoRefresh, setAutoRefresh] = useState(false);
 
   // Auto-refresh effect
-  useState(() => {
+  useEffect(() => {
     let interval: NodeJS.Timeout;
     
     if (autoRefresh && orderDetails && orderDetails.status !== 'delivered' && orderDetails.status !== 'cancelled') {

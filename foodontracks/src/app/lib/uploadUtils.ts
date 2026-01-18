@@ -3,6 +3,8 @@
  * Provides client-side file upload functionality using pre-signed URLs
  */
 
+import { logger } from '@/lib/logger';
+
 interface UploadOptions {
   filename: string;
   fileType: string;
@@ -98,7 +100,7 @@ export async function uploadFile(
     });
 
     if (!metadataResponse.ok) {
-      logger.warn("upload_metadata_save_failed", { fileKey });
+      logger.warn("upload_metadata_save_failed", { context: { filename: generatedFilename } });
       return {
         success: true,
         fileUrl: publicURL,

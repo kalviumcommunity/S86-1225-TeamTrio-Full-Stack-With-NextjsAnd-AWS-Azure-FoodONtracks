@@ -5,85 +5,61 @@ import { useRouter } from 'next/navigation';
 import { UserRole } from '@/types/user';
 import { ArrowLeft, Search, UserCircle2 } from 'lucide-react';
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 via-orange-
-      50 to-white dark:from-gray-950 dark:via-gray-900 dark:to-gray-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-          <p className="text-gray-700 dark:text-gray-300">Loading users...</p>
-        </div>
-      </div>
-    );
-  }
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  createdAt: string;
+}
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-orange-50 to-white dark:from-gray-950 dark:via-gray-900 dark:to-gray-900">
-      <header className="bg-white/90 dark:bg-gray-900/90 backdrop-blur border-b border-yellow-200 dark:border-yellow-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center gap-4">
-            <div>
-              <button
-                onClick={() => router.push('/dashboard/admin')}
-                className="inline-flex items-center text-sm text-orange-600 hover:text-orange-700 dark:text-orange-300 dark:hover:text-orange-200 mb-2 gap-1"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Back to Dashboard</span>
-              </button>
-              <div className="flex items-center gap-3">
-                <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-yellow-100 text-orange-600 dark:bg-yellow-900/40 dark:text-orange-300">
-                  <UserCircle2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">User Management</h1>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">View and manage all users across the platform.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+interface Pagination {
+  total: number;
+  page: number;
+  pages: number;
+}
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+export default function AdminUsersPage() {
+  const router = useRouter();
+  const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
+
+  useEffect(() => {
+    const verifyAndFetchUsers = async () => {
+      try {
+        setLoading(true);
         const verifyRes = await fetch('/api/auth/verify');
-        <div className="bg-white dark:bg-gray-900 border border-yellow-100 dark:border-yellow-900/40 rounded-xl shadow-sm p-6 mb-6">
-          <div className="mb-4">
-            <label htmlFor="search" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        if (!verifyRes.ok) {
+          router.push('/login');
+          return;
         }
 
-            <div className="relative">
-              <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                <Search className="w-4 h-4" />
-              </span>
-              <input
-                id="search"
-                type="text"
-                placeholder="Search by name, email, or role..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-              />
-            </div>
+        const params = new URLSearchParams({
           page: currentPage.toString(),
           limit: '20',
-          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Filter by Role</h2>
-        
+        });
+
         if (roleFilter) {
           params.append('role', roleFilter);
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+        }
 
-                  ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'
+        const usersRes = await fetch(`/api/users?${params}`);
+        if (usersRes.ok) {
           const data = await usersRes.json();
           setUsers(data.users);
           setFilteredUsers(data.users);
           setPagination(data.pagination);
         }
       } catch (error) {
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+        console.error('Error fetching users:', error);
       } finally {
-                  ? 'bg-red-600 text-white shadow-md'
-                  : 'bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50'
+        setLoading(false);
+      }
     };
 
     verifyAndFetchUsers();
@@ -123,69 +99,81 @@ import { ArrowLeft, Search, UserCircle2 } from 'lucide-react';
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 via-orange-50 to-white dark:from-gray-950 dark:via-gray-900 dark:to-gray-900">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading users...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-700 dark:text-gray-300">Loading users...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-50">
-      <header className="bg-white shadow">
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-orange-50 to-white dark:from-gray-950 dark:via-gray-900 dark:to-gray-900">
+      <header className="bg-white/90 dark:bg-gray-900/90 backdrop-blur border-b border-yellow-200 dark:border-yellow-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center gap-4">
             <div>
               <button
                 onClick={() => router.push('/dashboard/admin')}
-                className="text-sm text-blue-600 hover:text-blue-800 mb-2 flex items-center"
+                className="inline-flex items-center text-sm text-orange-600 hover:text-orange-700 dark:text-orange-300 dark:hover:text-orange-200 mb-2 gap-1"
               >
-                ← Back to Dashboard
+                <ArrowLeft className="w-4 h-4" />
+                <span>Back to Dashboard</span>
               </button>
-              <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-              <p className="text-sm text-gray-600">View and manage all users</p>
+              <div className="flex items-center gap-3">
+                <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-yellow-100 text-orange-600 dark:bg-yellow-900/40 dark:text-orange-300">
+                  <UserCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">User Management</h1>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">View and manage all users across the platform.</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search and Filters */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <div className="bg-white dark:bg-gray-900 border border-yellow-100 dark:border-yellow-900/40 rounded-xl shadow-sm p-6 mb-6">
           <div className="mb-4">
-            <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="search" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Search Users
             </label>
-            <input
-              id="search"
-              type="text"
-              placeholder="Search by name, email, or role..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+            <div className="relative">
+              <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                <Search className="w-4 h-4" />
+              </span>
+              <input
+                id="search"
+                type="text"
+                placeholder="Search by name, email, or role..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              />
+            </div>
           </div>
 
-          <h2 className="text-lg font-semibold mb-4">Filter by Role</h2>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Filter by Role</h2>
           <div className="flex flex-wrap gap-3">
             <button
               onClick={() => handleRoleFilterChange('')}
-              className={`px-4 py-2 rounded-lg transition ${
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                 roleFilter === ''
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'
               }`}
             >
               All Users
             </button>
             <button
               onClick={() => handleRoleFilterChange(UserRole.ADMIN)}
-              className={`px-4 py-2 rounded-lg transition ${
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                 roleFilter === UserRole.ADMIN
-                  ? 'bg-red-600 text-white'
-                  : 'bg-red-100 text-red-700 hover:bg-red-200'
+                  ? 'bg-red-600 text-white shadow-md'
+                  : 'bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50'
               }`}
             >
               Admins

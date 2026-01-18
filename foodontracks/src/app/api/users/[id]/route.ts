@@ -64,7 +64,7 @@ export const PUT = withLogging(async (
 
     logger.info("User updated successfully", {
       userId: id,
-      updatedFields: Object.keys(validatedData),
+      context: { updatedFields: Object.keys(validatedData) }
     });
 
     return NextResponse.json({

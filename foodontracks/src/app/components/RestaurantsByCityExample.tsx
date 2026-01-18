@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
 import Button from '@/components/ui/Button';
-import { MapPin, Star, UtensilsCrossed, ImageOff } from 'lucide-react';
+import { MapPin, Star, UtensilsCrossed } from 'lucide-react';
 
 /**
  * Example component showing how to fetch restaurants by city

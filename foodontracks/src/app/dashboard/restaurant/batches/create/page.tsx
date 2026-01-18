@@ -46,7 +46,7 @@ export default function CreateBatchPage() {
   });
 
   useEffect(() => {
-    const batchParam = searchParams.get('batch');
+    const batchParam = searchParams?.get('batch');
     if (batchParam) {
       setBatchNumber(batchParam);
       // Auto-search when batch number is in URL

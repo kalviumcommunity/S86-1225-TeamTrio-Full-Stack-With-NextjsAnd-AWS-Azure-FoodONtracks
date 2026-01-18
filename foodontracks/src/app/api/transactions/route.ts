@@ -59,7 +59,7 @@ export const POST = withLogging(async (request: Request) => {
             throw new Error(`MenuItem ${it.menuItemId} not found`);
           }
           
-          if (menuItem.stock < it.quantity) {
+          if ((menuItem as any).stock < it.quantity) {
             throw new Error(`Insufficient stock for item ${menuItem.name}`);
           }
 

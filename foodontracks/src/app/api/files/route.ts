@@ -27,7 +27,7 @@ export const POST = withLogging(async (req: NextRequest) => {
   try {
     await dbConnect();
     const body = await req.json();
-    const { name, url, fileType, fileSize, uploaderId, entityType, entityId } =
+    const { name, url, fileType, fileSize, uploaderId } =
       body;
 
     // Validate required fields
@@ -42,13 +42,12 @@ export const POST = withLogging(async (req: NextRequest) => {
 
     // Create file record in database
     const file = await File.create({
-      name,
-      url,
-      fileType,
-      fileSize: parseInt(fileSize.toString()),
-      uploaderId: uploaderId || undefined,
-      entityType: entityType || undefined,
-      entityId: entityId ? parseInt(entityId.toString()) : undefined,
+      filename: name,
+      originalName: name,
+      mimeType: fileType,
+      size: parseInt(fileSize.toString()),
+      cloudinaryUrl: url,
+      uploadedBy: uploaderId as any,
     });
 
     return sendSuccess(file, "File metadata saved successfully", 201);

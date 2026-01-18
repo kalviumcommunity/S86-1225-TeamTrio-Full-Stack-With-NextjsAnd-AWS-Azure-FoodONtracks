@@ -117,7 +117,7 @@ export const POST = withRbac(
         role: role || "user",
       });
 
-      const userResponse = newUser.toObject();
+      const userResponse: any = newUser.toObject();
       delete userResponse.password;
 
       return NextResponse.json(

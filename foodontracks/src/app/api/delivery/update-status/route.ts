@@ -76,9 +76,11 @@ export async function PATCH(req: NextRequest) {
     await order.save();
 
     logger.info('delivery_status_updated', {
-      orderId: order._id,
-      newStatus: status,
-      deliveryPersonId: decoded.userId,
+      userId: decoded.userId,
+      context: {
+        orderId: order._id.toString(),
+        newStatus: status,
+      },
     });
 
     return NextResponse.json({

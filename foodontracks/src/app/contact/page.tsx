@@ -28,7 +28,7 @@ export default function ContactForm() {
   });
 
   const onSubmit = async (data: ContactFormData) => {
-    logger.info("contact_form_submitted", { data });
+    logger.info("contact_form_submitted", { context: { data } });
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1000));
     alert("Message Sent Successfully!");
@@ -53,7 +53,7 @@ export default function ContactForm() {
           <FormInput
             label="Your Name"
             name="name"
-            register={register}
+            register={register as any}
             error={errors.name?.message}
             placeholder="John Doe"
           />
@@ -62,7 +62,7 @@ export default function ContactForm() {
             label="Email Address"
             name="email"
             type="email"
-            register={register}
+            register={register as any}
             error={errors.email?.message}
             placeholder="john@example.com"
           />
@@ -70,7 +70,7 @@ export default function ContactForm() {
           <FormInput
             label="Subject"
             name="subject"
-            register={register}
+            register={register as any}
             error={errors.subject?.message}
             placeholder="What's this about?"
           />

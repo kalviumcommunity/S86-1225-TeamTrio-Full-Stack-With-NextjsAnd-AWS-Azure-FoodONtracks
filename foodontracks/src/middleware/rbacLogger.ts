@@ -55,21 +55,11 @@ export function logRbacDecision(entry: Omit<RbacLogEntry, "timestamp">): void {
     ? `User ${logEntry.userId} (${logEntry.role})`
     : `Role: ${logEntry.role}`;
 
-  const logMessage = [
-    `[RBAC] ${status}`,
-    `${userInfo}`,
-    `attempted to ${logEntry.permission}`,
-    `${logEntry.resource}`,
-    `at ${logEntry.path}`,
-    `- ${logEntry.reason}`,
-    `(IP: ${logEntry.ip})`,
-  ].join(" ");
-
   // Emit structured RBAC log
   if (logEntry.allowed) {
-    logger.info("rbac_decision", { ...logEntry });
+    logger.info("rbac_decision", { context: { ...logEntry, status, userInfo } });
   } else {
-    logger.warn("rbac_decision", { ...logEntry });
+    logger.warn("rbac_decision", { context: { ...logEntry, status, userInfo } });
   }
 
   // In production, also send to external logging service:

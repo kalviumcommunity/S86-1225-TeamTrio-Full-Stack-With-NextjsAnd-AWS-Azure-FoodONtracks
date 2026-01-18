@@ -11,9 +11,11 @@ export function withLogging(handler: ApiHandler): ApiHandler {
 
     logger.info("api_request_received", {
       requestId,
-      method: req?.method,
-      url: req?.url,
-      pathname: req?.nextUrl?.pathname,
+      context: {
+        method: req?.method,
+        url: req?.url,
+        pathname: req?.nextUrl?.pathname,
+      }
     });
 
     try {
@@ -22,10 +24,12 @@ export function withLogging(handler: ApiHandler): ApiHandler {
       const duration = Date.now() - start;
       logger.info("api_request_completed", {
         requestId,
-        status: res?.status ?? 200,
-        durationMs: duration,
-        method: req?.method,
-        pathname: req?.nextUrl?.pathname,
+        context: {
+          status: res?.status ?? 200,
+          durationMs: duration,
+          method: req?.method,
+          pathname: req?.nextUrl?.pathname,
+        }
       });
 
       return res;

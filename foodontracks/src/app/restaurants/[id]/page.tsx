@@ -17,6 +17,7 @@ interface MenuItem {
   price: number;
   category: string;
   image?: string;
+  imageUrl?: string;
   isAvailable: boolean;
 }
 
@@ -49,15 +50,15 @@ export default function RestaurantDetailPage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   useEffect(() => {
-    if (params.id) {
+    if (params?.id) {
       fetchRestaurantDetails();
       fetchMenuItems();
     }
-  }, [params.id]);
+  }, [params?.id]);
 
   const fetchRestaurantDetails = async () => {
     try {
-      const response = await fetch(`/api/restaurants/${params.id}`);
+      const response = await fetch(`/api/restaurants/${params?.id}`);
       if (response.ok) {
         const data = await response.json();
         setRestaurant(data.data);
@@ -69,7 +70,7 @@ export default function RestaurantDetailPage() {
 
   const fetchMenuItems = async () => {
     try {
-      const response = await fetch(`/api/menu-items?restaurantId=${params.id}`);
+      const response = await fetch(`/api/menu-items?restaurantId=${params?.id}`);
       if (response.ok) {
         const data = await response.json();
         setMenuItems(data.data || []);

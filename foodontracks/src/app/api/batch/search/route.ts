@@ -135,9 +135,11 @@ export const GET = withLogging(async (req: NextRequest) => {
     };
 
     logger.info('batch_search_success', {
-      batchNumber,
-      orderId: order._id?.toString(),
-      status: order.status,
+      userId: order._id?.toString(),
+      context: {
+        batchNumber,
+        status: order.status,
+      },
     });
 
     return NextResponse.json(traceabilityData);

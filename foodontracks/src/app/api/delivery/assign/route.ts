@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Assign order to this delivery person
-    order.deliveryPersonId = decoded.userId;
+    order.deliveryPersonId = decoded.userId as any;
     order.status = 'picked_by_delivery';
     
     console.log('Assigning order:', {

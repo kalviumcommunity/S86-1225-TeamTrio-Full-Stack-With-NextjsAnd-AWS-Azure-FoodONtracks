@@ -4,7 +4,6 @@ import { Restaurant } from "@/models/Restaurant";
 import { RestaurantAddress } from "@/models/RestaurantAddress";
 
 export const runtime = "nodejs";
-import { MenuItem } from "@/models/MenuItem";
 import { restaurantUpdateSchema } from "@/lib/schemas/restaurantSchema";
 import { validateData } from "@/lib/validationUtils";
 import { logger } from "@/lib/logger";

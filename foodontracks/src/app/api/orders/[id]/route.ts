@@ -126,7 +126,7 @@ export const PATCH = withLogging(async (
     ).populate('userId', 'name email phone')
      .populate('restaurantId', 'name');
 
-    logger.info("order_updated", { orderId: id, updates: updateData });
+    logger.info("order_updated", { context: { orderId: id, updates: updateData } });
 
     return NextResponse.json({
       success: true,
@@ -179,7 +179,7 @@ export const PUT = withLogging(async (
         if (status) updateData.status = status;
         if (specialInstructions !== undefined) updateData.specialInstructions = specialInstructions;
         if (deliveryPersonId !== undefined) updateData.deliveryPersonId = deliveryPersonId;
-        if (status === "DELIVERED" && !existingOrder.actualDeliveryTime) {
+        if (status === "DELIVERED" && !(existingOrder as any).actualDeliveryTime) {
           updateData.actualDeliveryTime = new Date();
         }
 

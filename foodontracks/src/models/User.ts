@@ -80,7 +80,7 @@ const UserSchema = new Schema<IUser>(
 );
 
 // Pre-save middleware to set role level
-UserSchema.pre('save', function(next) {
+UserSchema.pre('save', function(this: any, next: any) {
   if (this.isModified('role')) {
     this.roleLevel = ROLE_LEVELS[this.role as UserRole];
   }

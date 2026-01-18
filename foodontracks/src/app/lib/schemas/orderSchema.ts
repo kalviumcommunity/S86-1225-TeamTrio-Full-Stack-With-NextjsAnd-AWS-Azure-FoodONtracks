@@ -43,9 +43,9 @@ export const createOrderSchema = z.object({
   addressId: z.number().int().positive("Address ID must be a positive integer"),
   specialInstructions: z
     .string()
+    .max(500, "Special instructions must not exceed 500 characters")
     .optional()
-    .nullable()
-    .max(500, "Special instructions must not exceed 500 characters"),
+    .nullable(),
   orderItems: z
     .array(orderItemSchema)
     .min(1, "Order must contain at least one item"),
@@ -66,9 +66,9 @@ export const updateOrderSchema = z.object({
   status: orderStatusEnum.optional(),
   specialInstructions: z
     .string()
+    .max(500, "Special instructions must not exceed 500 characters")
     .optional()
-    .nullable()
-    .max(500, "Special instructions must not exceed 500 characters"),
+    .nullable(),
   deliveryPersonId: z
     .number()
     .int()

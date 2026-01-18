@@ -28,8 +28,10 @@ export const GET = withLogging(async (req: NextRequest) => {
       .lean();
 
     logger.info("fetch_menu_items", { 
-      restaurantId, 
-      count: menuItems.length 
+      context: {
+        restaurantId, 
+        count: menuItems.length
+      }
     });
 
     return NextResponse.json({
@@ -86,7 +88,7 @@ export const POST = withLogging(async (req: NextRequest) => {
       imagePublicId: body.imagePublicId,
     });
 
-    logger.info("menu_item_created", { menuItemId: newItem._id });
+    logger.info("menu_item_created", { context: { menuItemId: newItem._id } });
 
     return NextResponse.json(
       {
@@ -98,9 +100,11 @@ export const POST = withLogging(async (req: NextRequest) => {
     );
   } catch (error: any) {
     logger.error("error_creating_menu_item", { 
-      error: String(error),
-      message: error.message,
-      stack: error.stack 
+      context: {
+        error: String(error),
+        message: error.message,
+        stack: error.stack
+      }
     });
     
     return NextResponse.json(

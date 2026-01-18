@@ -105,15 +105,15 @@ export default function OrdersPage() {
 
   const getStatusColor = (
     status: string,
-  ): 'default' | 'success' | 'warning' | 'danger' | 'info' | 'purple' => {
+  ): 'default' | 'success' | 'warning' | 'danger' | 'info' | 'primary' | 'accent' => {
     const statusMap: Record<
       string,
-      'default' | 'success' | 'warning' | 'danger' | 'info' | 'purple'
+      'default' | 'success' | 'warning' | 'danger' | 'info' | 'primary' | 'accent'
     > = {
       pending: 'warning',
       confirmed: 'info',
       preparing: 'info',
-      ready: 'purple',
+      ready: 'primary',
       delivered: 'success',
       cancelled: 'danger',
     };

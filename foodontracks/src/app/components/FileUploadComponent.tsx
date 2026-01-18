@@ -58,7 +58,7 @@ export default function FileUploadComponent() {
       setUploadResult(result);
 
       if (result.success) {
-        logger.info("file_upload_success", { fileUrl: result.fileUrl });
+        logger.info("file_upload_success", { context: { fileUrl: result.fileUrl } });
         // Reset file input
         setSelectedFile(null);
       } else {

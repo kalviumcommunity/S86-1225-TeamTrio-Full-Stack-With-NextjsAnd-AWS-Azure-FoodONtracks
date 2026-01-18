@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Activity, CheckCircle, Clock, FileText, Loader2, Package, Truck, User, XCircle } from 'lucide-react';
+import { Activity, CheckCircle, Clock, FileText, Loader2, Package, Truck, XCircle } from 'lucide-react';
 
 interface BatchData {
   success: boolean;
@@ -51,7 +51,7 @@ interface BatchData {
 export default function TrackBatchPage() {
   const params = useParams();
   const router = useRouter();
-  const batchNumber = params.batchNumber as string;
+  const batchNumber = params?.batchNumber as string;
   
   const [data, setData] = useState<BatchData | null>(null);
   const [loading, setLoading] = useState(true);

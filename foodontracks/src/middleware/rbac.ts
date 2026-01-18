@@ -150,7 +150,7 @@ export function checkRbac(
   // Step 3: Log the decision
   logRbacDecision({
     allowed,
-    userId: user.userId,
+    userId: typeof user.userId === 'number' ? user.userId : undefined,
     role: userRole,
     resource,
     permission: checkedPermission,
@@ -242,7 +242,7 @@ export function withAuth(
 
     logRbacDecision({
       allowed: true,
-      userId: user.userId,
+      userId: typeof user.userId === 'number' ? user.userId : undefined,
       role: user.role,
       resource: "unknown",
       permission: "authenticated",
@@ -279,7 +279,7 @@ export function withAdmin(
     if (user.role !== "ADMIN") {
       logRbacDecision({
         allowed: false,
-        userId: user.userId,
+        userId: typeof user.userId === 'number' ? user.userId : undefined,
         role: user.role,
         resource: "admin",
         permission: "manage",
@@ -296,7 +296,7 @@ export function withAdmin(
 
     logRbacDecision({
       allowed: true,
-      userId: user.userId,
+      userId: typeof user.userId === 'number' ? user.userId : undefined,
       role: user.role,
       resource: "admin",
       permission: "manage",

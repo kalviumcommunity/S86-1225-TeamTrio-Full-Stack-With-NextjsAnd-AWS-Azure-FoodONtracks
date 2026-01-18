@@ -101,12 +101,12 @@ export default function CustomerDashboard() {
     verifyAuthAndFetchData();
   }, [verifyAuthAndFetchData]);
 
-  const getStatusColor = (status: string): 'default' | 'success' | 'warning' | 'danger' | 'info' | 'purple' => {
-    const statusMap: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info' | 'purple'> = {
+  const getStatusColor = (status: string): 'default' | 'success' | 'warning' | 'danger' | 'info' | 'primary' | 'accent' => {
+    const statusMap: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info' | 'primary' | 'accent'> = {
       pending: 'warning',
       confirmed: 'info',
       preparing: 'info',
-      ready: 'purple',
+      ready: 'primary',
       delivered: 'success',
       cancelled: 'danger',
     };

@@ -83,7 +83,6 @@ export const POST = withLogging(async (req: Request) => {
       role: role as UserRole,
       roleLevel: ROLE_LEVELS[role as UserRole],
       phoneNumber,
-      restaurantId: null, // Will be set after restaurant creation for RESTAURANT_OWNER
       isActive: true,
     });
 
@@ -125,13 +124,15 @@ export const POST = withLogging(async (req: Request) => {
         }
 
         // STEP 3: Update user with restaurantId
-        user.restaurantId = newRestaurant._id;
+        user.restaurantId = newRestaurant._id as any;
         await user.save();
 
         logger.info('restaurant_auto_created', {
-          restaurantId: newRestaurant._id.toString(),
-          ownerId: user._id.toString(),
-          ownerName: name,
+          userId: user._id.toString(),
+          context: {
+            restaurantId: newRestaurant._id.toString(),
+            ownerName: name,
+          },
         });
       } catch (restaurantError: any) {
         // If restaurant creation fails, delete the user to maintain consistency
@@ -167,7 +168,7 @@ export const POST = withLogging(async (req: Request) => {
 
         logger.info('delivery_agent_auto_created', {
           userId: user._id.toString(),
-          name,
+          context: { name },
         });
       } catch (deliveryAgentError: any) {
         // If delivery agent creation fails, delete the user to maintain consistency
@@ -198,8 +199,10 @@ export const POST = withLogging(async (req: Request) => {
 
     logger.info('user_signup_success', {
       userId: user._id?.toString(),
-      email: user.email,
-      role: user.role,
+      context: {
+        email: user.email,
+        role: user.role,
+      },
     });
 
     // Determine redirect URL based on role

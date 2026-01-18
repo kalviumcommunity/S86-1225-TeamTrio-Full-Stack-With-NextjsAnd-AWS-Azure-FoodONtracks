@@ -222,11 +222,11 @@ class Logger {
     logFn(`${method} ${endpoint} - ${statusCode}`, error, {
       requestId,
       endpoint,
-      method,
       statusCode,
-      duration,
       userId,
       context: {
+        method,
+        duration,
         responseTime: `${duration}ms`,
       },
     });

@@ -46,7 +46,7 @@ export default function OptimisticUIDemo() {
       available: true,
     };
 
-    logger.info("optimistic_add_start", { item: newItem });
+    logger.info("optimistic_add_start", { context: { item: newItem } });
 
     // Step 1: Update UI optimistically (no server call yet)
     mutate(
@@ -59,7 +59,7 @@ export default function OptimisticUIDemo() {
 
     try {
       // Step 2: Make actual API call
-      logger.info("optimistic_add_request", { name, price: parseFloat(price) });
+      logger.info("optimistic_add_request", { context: { name, price: parseFloat(price) } });
       const response = await fetch("/api/menu-items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -77,7 +77,7 @@ export default function OptimisticUIDemo() {
       }
 
       const result = await response.json();
-      logger.info("optimistic_add_confirmed", { result });
+      logger.info("optimistic_add_confirmed", { context: { result } });
 
       // Step 3: Revalidate to get real data from server
       await mutate("/api/menu-items");
@@ -99,7 +99,7 @@ export default function OptimisticUIDemo() {
 
   // Optimistic Delete
   const handleOptimisticDelete = async (itemId: number) => {
-    logger.info("optimistic_delete_start", { itemId });
+    logger.info("optimistic_delete_start", { context: { itemId } });
 
     // Update UI immediately
     const updatedItems = menuItems.filter((item) => item.id !== itemId);
@@ -115,7 +115,7 @@ export default function OptimisticUIDemo() {
         throw new Error("Failed to delete item");
       }
 
-      logger.info("optimistic_delete_confirmed", { itemId });
+      logger.info("optimistic_delete_confirmed", { context: { itemId } });
       // Revalidate to sync
       await mutate("/api/menu-items");
     } catch (error) {
@@ -128,7 +128,7 @@ export default function OptimisticUIDemo() {
 
   // Optimistic Toggle Availability
   const handleToggleAvailability = async (item: MenuItem) => {
-    logger.info("optimistic_toggle_start", { itemId: item.id });
+    logger.info("optimistic_toggle_start", { context: { itemId: item.id } });
 
     // Update UI immediately
     const updatedItems = menuItems.map((i) =>
@@ -148,7 +148,7 @@ export default function OptimisticUIDemo() {
         throw new Error("Failed to update availability");
       }
 
-      logger.info("optimistic_toggle_confirmed", { itemId: item.id });
+      logger.info("optimistic_toggle_confirmed", { context: { itemId: item.id } });
       await mutate("/api/menu-items");
     } catch (error) {
       logger.error("optimistic_toggle_error", { error: String(error) });

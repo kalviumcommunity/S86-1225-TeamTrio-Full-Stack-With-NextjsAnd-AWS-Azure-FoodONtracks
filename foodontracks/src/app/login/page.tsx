@@ -1,12 +1,12 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { LogIn, Mail, Lock, Train } from 'lucide-react';
 
-export default function Login() {
-  const router = useRouter();
+function LoginContent() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -140,5 +140,13 @@ export default function Login() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function Login() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }

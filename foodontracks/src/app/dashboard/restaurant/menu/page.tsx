@@ -175,8 +175,6 @@ export default function RestaurantMenuPage() {
     }
   };
 
-  const categories = Array.from(new Set(menuItems.map(item => item.category)));
-
   if (loading) {
     return (
       <div className="flex items-center justify-center p-6">

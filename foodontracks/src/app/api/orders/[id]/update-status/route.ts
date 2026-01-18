@@ -10,7 +10,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const token = await getAccessToken();
@@ -24,7 +24,7 @@ export async function PATCH(
     };
 
     const { status } = await req.json();
-    const orderId = params.id;
+    const { id: orderId } = await params;
 
     if (!status) {
       return NextResponse.json(

@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import Batch from '@/models/Batch';
-import Order from '@/models/Order';
-import { verifyAuth } from '@/lib/apiAuth';
+import { Batch } from '@/models/Batch';
+import { Order } from '@/models/Order';
+import { extractAuthUser } from '@/lib/apiAuth';
 
 // GET /api/batch/[batchId] - Get batch details
 export async function GET(
   req: NextRequest,
-  { params }: { params: { batchId: string } }
+  { params }: { params: Promise<{ batchId: string }> }
 ) {
   try {
     await dbConnect();
 
-    const { batchId } = params;
+    const { batchId } = await params;
 
     const batch = await Batch.findOne({ batchNumber: batchId })
       .populate('assignedDeliveryPerson', 'name phone')
@@ -50,10 +50,10 @@ export async function GET(
 // PUT /api/batch/[batchId] - Update batch status (DELIVERY_GUY only)
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { batchId: string } }
+  { params }: { params: Promise<{ batchId: string }> }
 ) {
   try {
-    const user = await verifyAuth(req);
+    const user = extractAuthUser(req);
     if (!user || user.role !== 'DELIVERY_GUY') {
       return NextResponse.json(
         { success: false, message: 'Unauthorized' },
@@ -63,7 +63,7 @@ export async function PUT(
 
     await dbConnect();
 
-    const { batchId } = params;
+    const { batchId } = await params;
     const body = await req.json();
     const { status, location } = body;
 
@@ -77,7 +77,7 @@ export async function PUT(
     }
 
     // Verify the batch is assigned to this delivery person
-    if (batch.assignedDeliveryPerson?.toString() !== user.id) {
+    if (batch.assignedDeliveryPerson?.toString() !== user.userId) {
       return NextResponse.json(
         { success: false, message: 'This batch is not assigned to you' },
         { status: 403 }

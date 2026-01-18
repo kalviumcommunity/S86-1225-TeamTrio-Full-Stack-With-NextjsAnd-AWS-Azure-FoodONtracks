@@ -1,5 +1,4 @@
 import { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 
 export const runtime = "nodejs";

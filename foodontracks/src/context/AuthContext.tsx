@@ -5,7 +5,6 @@ import {
   useState,
   useContext,
   ReactNode,
-  useEffect,
 } from "react";
 import { logger } from "@/lib/logger";
 
@@ -41,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     return null;
   });
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
 
   const login = (username: string, email: string, role: string = "user") => {
     const newUser: User = {
@@ -52,13 +51,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     setUser(newUser);
     localStorage.setItem("authUser", JSON.stringify(newUser));
-    logger.info("user_logged_in", { username, role });
+    logger.info("user_logged_in", { context: { username, role } });
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem("authUser");
-    logger.info("user_logged_out", {});
+    logger.info("user_logged_out");
   };
 
   const updateUser = (userData: Partial<User>) => {
@@ -66,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const updatedUser = { ...user, ...userData };
       setUser(updatedUser);
       localStorage.setItem("authUser", JSON.stringify(updatedUser));
-      logger.info("user_updated", { user: updatedUser });
+      logger.info("user_updated", { context: { user: updatedUser } });
     }
   };
 

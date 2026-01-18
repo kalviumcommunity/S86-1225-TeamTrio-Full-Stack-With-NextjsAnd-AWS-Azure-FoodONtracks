@@ -57,7 +57,7 @@ export function UIProvider({ children }: { children: ReactNode }) {
       const newTheme = prev === "light" ? "dark" : "light";
       localStorage.setItem("theme", newTheme);
       document.documentElement.classList.toggle("dark", newTheme === "dark");
-      logger.info("theme_toggled", { newTheme });
+      logger.info("theme_toggled", { context: { newTheme } });
       return newTheme;
     });
   };
@@ -66,12 +66,12 @@ export function UIProvider({ children }: { children: ReactNode }) {
     setThemeState(newTheme);
     localStorage.setItem("theme", newTheme);
     document.documentElement.classList.toggle("dark", newTheme === "dark");
-    logger.info("theme_set", { newTheme });
+    logger.info("theme_set", { context: { newTheme } });
   };
 
   const toggleSidebar = () => {
     setSidebarOpen((prev) => {
-      logger.info("sidebar_toggled", { open: !prev });
+      logger.info("sidebar_toggled", { context: { open: !prev } });
       return !prev;
     });
   };
@@ -79,14 +79,14 @@ export function UIProvider({ children }: { children: ReactNode }) {
   const setLanguageHandler = (lang: Language) => {
     setLanguage(lang);
     localStorage.setItem("language", lang);
-    logger.info("language_changed", { lang });
+    logger.info("language_changed", { context: { lang } });
   };
 
   const toggleNotifications = () => {
     setNotifications((prev) => {
       const newValue = !prev;
       localStorage.setItem("notifications", newValue.toString());
-      logger.info("notifications_toggled", { enabled: newValue });
+      logger.info("notifications_toggled", { context: { enabled: newValue } });
       return newValue;
     });
   };

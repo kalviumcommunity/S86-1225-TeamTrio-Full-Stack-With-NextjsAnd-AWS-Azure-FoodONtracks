@@ -16,7 +16,6 @@ import {
   Truck,
   FileText,
   Home,
-  Lock,
   LogOut,
 } from 'lucide-react';
 

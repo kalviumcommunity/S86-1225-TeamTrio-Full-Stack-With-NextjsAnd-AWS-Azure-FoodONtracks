@@ -120,10 +120,10 @@ async function GET_handler(req: NextRequest) {
   } catch (error) {
     logger.error("error_fetching_restaurants", { error: String(error) });
     return sendError(
+      ERROR_CODES.DATABASE_ERROR,
       "Failed to fetch restaurants",
-      ERROR_CODES.DATABASE_FAILURE,
-      500,
-      error
+      undefined,
+      500
     );
   }
 }
@@ -145,23 +145,24 @@ async function POST_handler(req: NextRequest) {
     const {
       name,
       email,
-      phoneNumber,
+      phone,
       description,
       address,
       city,
       state,
-      zipCode,
+      postalCode,
     } = validationResult.data;
 
     // Check if restaurant already exists
     const existingRestaurant = await Restaurant.findOne({
-      $or: [{ email }, { phoneNumber }]
+      $or: [{ email }, { phoneNumber: phone }]
     });
 
     if (existingRestaurant) {
       return sendError(
+        ERROR_CODES.RESOURCE_ALREADY_EXISTS,
         "Restaurant with this email or phone number already exists",
-        ERROR_CODES.DUPLICATE_ENTRY,
+        undefined,
         409
       );
     }
@@ -170,22 +171,22 @@ async function POST_handler(req: NextRequest) {
     const restaurant = await Restaurant.create({
       name,
       email,
-      phoneNumber,
+      phoneNumber: phone,
       description,
       address,
       city,
       state,
-      zipCode,
+      zipCode: postalCode,
     });
 
     return sendSuccess(restaurant, "Restaurant created successfully", 201);
   } catch (error) {
     logger.error("error_creating_restaurant", { error: String(error) });
     return sendError(
+      ERROR_CODES.DATABASE_ERROR,
       "Failed to create restaurant",
-      ERROR_CODES.DATABASE_FAILURE,
-      500,
-      error
+      undefined,
+      500
     );
   }
 }

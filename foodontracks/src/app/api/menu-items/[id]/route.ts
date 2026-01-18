@@ -23,7 +23,7 @@ export async function GET(
       );
     }
 
-    logger.info("fetch_menu_item", { menuItemId: id });
+    logger.info("fetch_menu_item", { context: { menuItemId: id } });
 
     return NextResponse.json({ data: menuItem });
   } catch (error) {
@@ -58,7 +58,7 @@ export const PATCH = withLogging(async (
       );
     }
 
-    logger.info("update_menu_item", { menuItemId: id, updates: Object.keys(body) });
+    logger.info("update_menu_item", { context: { menuItemId: id, updates: Object.keys(body) } });
 
     return NextResponse.json({
       message: "Menu item updated successfully",
@@ -96,7 +96,7 @@ export const PUT = withLogging(async (
       );
     }
 
-    logger.info("update_menu_item_put", { menuItemId: id });
+    logger.info("update_menu_item_put", { context: { menuItemId: id } });
 
     return NextResponse.json({
       message: "Menu item updated successfully",
@@ -130,7 +130,7 @@ export async function DELETE(
       );
     }
 
-    logger.info("delete_menu_item", { menuItemId: id });
+    logger.info("delete_menu_item", { context: { menuItemId: id } });
 
     return NextResponse.json({
       message: "Menu item deleted successfully",

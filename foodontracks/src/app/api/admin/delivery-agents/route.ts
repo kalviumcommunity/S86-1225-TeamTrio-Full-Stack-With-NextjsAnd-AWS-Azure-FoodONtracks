@@ -5,7 +5,6 @@ import dbConnect from '@/lib/mongodb';
 
 export const runtime = "nodejs";
 import { DeliveryAgent } from '@/models/DeliveryAgent';
-import { User } from '@/models/User';
 import { UserRole } from '@/types/user';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';

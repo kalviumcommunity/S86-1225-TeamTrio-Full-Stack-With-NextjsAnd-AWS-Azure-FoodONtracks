@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
@@ -71,7 +70,6 @@ interface Batch {
 }
 
 export default function ActiveDeliveriesPage() {
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [assignedBatches, setAssignedBatches] = useState<Batch[]>([]);
   const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
@@ -176,11 +174,11 @@ export default function ActiveDeliveriesPage() {
   };
 
   const getStatusColor = (status: string) => {
-    const colors: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info' | 'purple'> = {
+    const colors: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info' | 'primary' | 'accent'> = {
       PREPARED: 'warning',
       PACKED: 'info',
-      PICKED_UP: 'purple',
-      PICKED_BY_DELIVERY: 'purple', // Handle order status
+      PICKED_UP: 'primary',
+      PICKED_BY_DELIVERY: 'primary', // Handle order status
       OUT_FOR_DELIVERY: 'info',
       DELIVERED: 'success',
       CANCELLED: 'danger',

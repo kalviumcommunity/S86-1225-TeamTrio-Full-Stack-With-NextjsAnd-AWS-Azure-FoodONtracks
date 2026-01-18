@@ -7,7 +7,8 @@ import {
   generateUniqueFilename,
   MAX_FILE_SIZE,
 } from "@/app/lib/fileValidation";
-
+import withLogging from "@/lib/requestLogger";
+import { logger } from "@/lib/logger";
 import { sendSuccess, sendError } from "@/lib/responseHandler";
 import { ERROR_CODES } from "@/lib/errorCodes";
  

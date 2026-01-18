@@ -7,7 +7,7 @@ import InputField from '@/components/ui/InputField';
 import { Spinner } from '@/components/ui/Spinner';
 import { Alert } from '@/components/ui/Alert';
 import { toast } from 'sonner';
-import { Clock, Package, Search, Truck, UtensilsCrossed } from 'lucide-react';
+import { CheckCircle, Clock, Package, Search, Truck, UtensilsCrossed } from 'lucide-react';
 
 export default function TrackOrderPage() {
   const router = useRouter();

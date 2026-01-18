@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useState } from "react";
-import { UserPlus, Mail, Lock, User as UserIcon, Phone, MapPin, Train, AlertCircle } from 'lucide-react';
+import { UserPlus, Train, AlertCircle } from 'lucide-react';
 
 // 1. Define validation schema
 const signupSchema = z.object({
@@ -261,8 +261,7 @@ export default function SignupPage() {
                     type="text"
                     {...register("restaurantStreet")}
                     placeholder="123 Main Street"
-                    className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 border-gray-300 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition"
-                      className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 border-gray-300 focus:ring-orange-500 dark:bg-gray-700 dark:text-white transition"
+                    className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 border-gray-300 focus:ring-orange-500 dark:bg-gray-700 dark:text-white transition"
                   />
                 </div>
 
@@ -275,8 +274,7 @@ export default function SignupPage() {
                       type="text"
                       {...register("restaurantCity")}
                       placeholder="New York"
-                      className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 border-gray-300 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition"
-                        className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 border-gray-300 focus:ring-orange-500 dark:bg-gray-700 dark:text-white transition"
+                      className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 border-gray-300 focus:ring-orange-500 dark:bg-gray-700 dark:text-white transition"
                     />
                   </div>
 
@@ -288,8 +286,7 @@ export default function SignupPage() {
                       type="text"
                       {...register("restaurantState")}
                       placeholder="NY"
-                      className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 border-gray-300 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition"
-                        className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 border-gray-300 focus:ring-orange-500 dark:bg-gray-700 dark:text-white transition"
+                      className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 border-gray-300 focus:ring-orange-500 dark:bg-gray-700 dark:text-white transition"
                     />
                   </div>
                 </div>
@@ -302,8 +299,7 @@ export default function SignupPage() {
                     type="text"
                     {...register("restaurantZipCode")}
                     placeholder="10001"
-                    className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 border-gray-300 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition"
-                      className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 border-gray-300 focus:ring-orange-500 dark:bg-gray-700 dark:text-white transition"
+                    className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 border-gray-300 focus:ring-orange-500 dark:bg-gray-700 dark:text-white transition"
                   />
                 </div>
               </div>

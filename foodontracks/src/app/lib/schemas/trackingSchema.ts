@@ -15,32 +15,32 @@ export const createTrackingSchema = z.object({
   status: orderStatusEnum,
   location: z
     .string()
+    .max(200, "Location must not exceed 200 characters")
     .optional()
-    .nullable()
-    .max(200, "Location must not exceed 200 characters"),
+    .nullable(),
   latitude: z.number().optional().nullable(),
   longitude: z.number().optional().nullable(),
   notes: z
     .string()
+    .max(500, "Notes must not exceed 500 characters")
     .optional()
-    .nullable()
-    .max(500, "Notes must not exceed 500 characters"),
+    .nullable(),
 });
 
 export const updateTrackingSchema = z.object({
   status: orderStatusEnum.optional(),
   location: z
     .string()
+    .max(200, "Location must not exceed 200 characters")
     .optional()
-    .nullable()
-    .max(200, "Location must not exceed 200 characters"),
+    .nullable(),
   latitude: z.number().optional().nullable(),
   longitude: z.number().optional().nullable(),
   notes: z
     .string()
+    .max(500, "Notes must not exceed 500 characters")
     .optional()
-    .nullable()
-    .max(500, "Notes must not exceed 500 characters"),
+    .nullable(),
 });
 
 export type CreateTrackingInput = z.infer<typeof createTrackingSchema>;

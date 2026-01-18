@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { sendEmail, isValidEmail, getEmailStats } from "@/app/lib/emailService";
-
+import withLogging from "@/lib/requestLogger";
 import { sendSuccess, sendError } from "@/lib/responseHandler";
 import { ERROR_CODES } from "@/lib/errorCodes";
  

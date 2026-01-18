@@ -4,7 +4,7 @@ import dbConnect from "@/lib/mongodb";
 
 export const runtime = "nodejs";
 import { User } from "@/models/User";
-import { generateTokenPair, setTokenCookies } from "@/app/lib/jwtService";
+import { generateTokenPair } from "@/app/lib/jwtService";
 import { logger } from "@/lib/logger";
 import withLogging from "@/lib/requestLogger";
 
@@ -64,8 +64,10 @@ export const POST = withLogging(async (req: Request) => {
 
     logger.info('user_login_success', {
       userId: user._id.toString(),
-      email: user.email,
-      role: user.role,
+      context: {
+        email: user.email,
+        role: user.role,
+      },
     });
 
     // Determine redirect URL based on role
