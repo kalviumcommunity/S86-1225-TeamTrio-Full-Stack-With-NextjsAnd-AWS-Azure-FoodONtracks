@@ -86,7 +86,7 @@ export default function FeedbackDemo() {
   };
 
   return (
-    <main className="min-h-screen p-8 bg-gradient-to-br from-purple-50 to-pink-100">
+    <main className="min-h-screen p-8 bg-linear-to-br from-purple-50 to-pink-100">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
@@ -216,7 +216,7 @@ export default function FeedbackDemo() {
         </section>
 
         {/* Combined Flow Example */}
-        <section className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+        <section className="bg-linear-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg p-6 text-white">
           <h2 className="text-2xl font-semibold mb-2">🚀 Complete User Flow</h2>
           <p className="mb-4 text-blue-100">
             Demonstrates: Toast → Modal → Loader → Toast (Success/Failure)

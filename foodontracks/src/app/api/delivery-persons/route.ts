@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import dbConnect from "@/lib/mongodb";
+import { DeliveryPerson } from "@/models/DeliveryPerson";
+
+export const runtime = "nodejs";
 import { deliveryPersonSchema } from "@/lib/schemas/deliveryPersonSchema";
 import { validateData } from "@/lib/validationUtils";
 import { logger } from "@/lib/logger";
@@ -8,6 +11,7 @@ import withLogging from "@/lib/requestLogger";
 // GET /api/delivery-persons - Get all delivery persons
 export const GET = withLogging(async (req: NextRequest) => {
   try {
+    await dbConnect();
     const { searchParams } = new URL(req.url);
     const page = Number(searchParams.get("page")) || 1;
     const limit = Number(searchParams.get("limit")) || 10;
@@ -15,24 +19,16 @@ export const GET = withLogging(async (req: NextRequest) => {
 
     const skip = (page - 1) * limit;
 
-    const where: { isAvailable?: boolean } = {};
-    if (isAvailable) where.isAvailable = isAvailable === "true";
+    const filter: any = {};
+    if (isAvailable) filter.isAvailable = isAvailable === "true";
 
     const [deliveryPersons, total] = await Promise.all([
-      prisma.deliveryPerson.findMany({
-        where,
-        skip,
-        take: limit,
-        include: {
-          _count: {
-            select: {
-              orders: true,
-            },
-          },
-        },
-        orderBy: { rating: "desc" },
-      }),
-      prisma.deliveryPerson.count({ where }),
+      DeliveryPerson.find(filter)
+        .skip(skip)
+        .limit(limit)
+        .sort({ rating: -1 })
+        .lean(),
+      DeliveryPerson.countDocuments(filter),
     ]);
 
     return NextResponse.json({
@@ -56,6 +52,7 @@ export const GET = withLogging(async (req: NextRequest) => {
 // POST /api/delivery-persons - Create delivery person
 export const POST = withLogging(async (req: NextRequest) => {
   try {
+    await dbConnect();
     const body = await req.json();
 
     // Validate input using Zod schema
@@ -73,15 +70,13 @@ export const POST = withLogging(async (req: NextRequest) => {
       isAvailable,
     } = validationResult.data;
 
-    const deliveryPerson = await prisma.deliveryPerson.create({
-      data: {
-        name,
-        email,
-        phoneNumber,
-        vehicleType,
-        vehicleNumber,
-        isAvailable: isAvailable || true,
-      },
+    const deliveryPerson = await DeliveryPerson.create({
+      name,
+      email,
+      phoneNumber,
+      vehicleType,
+      vehicleNumber,
+      isAvailable: isAvailable || true,
     });
 
     return NextResponse.json(

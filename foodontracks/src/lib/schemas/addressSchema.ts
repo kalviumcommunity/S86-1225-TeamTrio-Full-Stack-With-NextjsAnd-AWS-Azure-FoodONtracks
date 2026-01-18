@@ -19,7 +19,7 @@ export const addressSchema = z.object({
 export const addressUpdateSchema = addressSchema.partial();
 
 export const addressCreateSchema = addressSchema.extend({
-  userId: z.coerce.number().int().positive("Invalid user ID"),
+  userId: z.string().min(1, "User ID is required"),
 });
 
 export type AddressInput = z.infer<typeof addressSchema>;

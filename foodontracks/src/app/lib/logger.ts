@@ -82,9 +82,35 @@ class Logger {
    * Can be extended to send to Sentry, CloudWatch, Datadog, etc.
    */
   private sendToExternalService(logEntry: LogEntry) {
-    // TODO: Implement integration with your monitoring service
-    // Example: Sentry.captureException()
-    // Example: CloudWatch.putMetricData()
+    // TODO: PRODUCTION MONITORING INTEGRATION REQUIRED
+    // Choose one of the following and uncomment:
+    
+    // Option 1: Sentry (Recommended for error tracking)
+    // Install: npm install @sentry/nextjs
+    // Setup: https://docs.sentry.io/platforms/javascript/guides/nextjs/
+    // if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+    //   Sentry.captureException(new Error(logEntry.message), {
+    //     level: logEntry.level,
+    //     extra: logEntry.meta,
+    //   });
+    // }
+    
+    // Option 2: AWS CloudWatch
+    // Install: npm install @aws-sdk/client-cloudwatch-logs
+    // if (process.env.AWS_CLOUDWATCH_LOG_GROUP) {
+    //   const cloudWatch = new CloudWatchLogsClient({ region: process.env.AWS_REGION });
+    //   // Send log to CloudWatch
+    // }
+    
+    // Option 3: Azure Application Insights
+    // Install: npm install applicationinsights
+    // if (process.env.APPLICATIONINSIGHTS_CONNECTION_STRING) {
+    //   const appInsights = require('applicationinsights');
+    //   appInsights.defaultClient.trackException({ exception: new Error(logEntry.message) });
+    // }
+    
+    // For now, log to console in production
+    console.warn('External logging not configured:', logEntry.message);
   }
 }
 

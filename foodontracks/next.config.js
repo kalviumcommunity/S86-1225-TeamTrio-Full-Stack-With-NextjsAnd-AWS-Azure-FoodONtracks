@@ -1,5 +1,9 @@
 ﻿/** next.config.js */
-const path = require('path');
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const nextConfig = {
   reactStrictMode: true,
@@ -80,12 +84,25 @@ const nextConfig = {
 
   // Image optimization for HTTPS
   images: {
-    domains: [
-      'foodontracks.local',
-      'www.foodontracks.local',
-      'api.foodontracks.local',
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'foodontracks.local',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.foodontracks.local',
+      },
+      {
+        protocol: 'https',
+        hostname: 'api.foodontracks.local',
+      },
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+      },
     ],
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;

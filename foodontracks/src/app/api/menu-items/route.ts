@@ -1,94 +1,114 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import withLogging from "@/lib/requestLogger";
+import dbConnect from "@/lib/mongodb";
+import { MenuItem } from "@/models/MenuItem";
 
-// Mock menu items data for demo purposes
-const mockMenuItems = [
-  {
-    id: 1,
-    name: "Margherita Pizza",
-    description: "Classic tomato and mozzarella",
-    price: 12.99,
-    category: "Pizza",
-    available: true,
-    restaurantId: 1,
-  },
-  {
-    id: 2,
-    name: "Chicken Burger",
-    description: "Grilled chicken with lettuce and tomato",
-    price: 9.99,
-    category: "Burgers",
-    available: true,
-    restaurantId: 1,
-  },
-  {
-    id: 3,
-    name: "Caesar Salad",
-    description: "Fresh romaine with caesar dressing",
-    price: 8.5,
-    category: "Salads",
-    available: true,
-    restaurantId: 1,
-  },
-  {
-    id: 4,
-    name: "Pasta Carbonara",
-    description: "Creamy pasta with bacon",
-    price: 14.99,
-    category: "Pasta",
-    available: false,
-    restaurantId: 1,
-  },
-];
+export const runtime = "nodejs";
 
-// GET /api/menu-items - Get all menu items
-export const GET = withLogging(async () => {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 200));
+// GET /api/menu-items - Get all menu items or by restaurantId
+export const GET = withLogging(async (req: NextRequest) => {
+  try {
+    await dbConnect();
+    
+    const { searchParams } = new URL(req.url);
+    const restaurantId = searchParams.get("restaurantId");
+    const category = searchParams.get("category");
+    const isAvailable = searchParams.get("isAvailable");
 
-  logger.info("fetch_menu_items_mock", {});
+    const filter: any = {};
+    if (restaurantId) filter.restaurantId = restaurantId;
+    if (category) filter.category = category;
+    if (isAvailable !== null && isAvailable !== undefined) {
+      filter.isAvailable = isAvailable === "true";
+    }
 
-  return NextResponse.json({
-    data: mockMenuItems,
-    total: mockMenuItems.length,
-    timestamp: new Date().toISOString(),
-  });
+    const menuItems = await MenuItem.find(filter)
+      .sort({ category: 1, name: 1 })
+      .lean();
+
+    logger.info("fetch_menu_items", { 
+      restaurantId, 
+      count: menuItems.length 
+    });
+
+    return NextResponse.json({
+      data: menuItems,
+      total: menuItems.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error("error_fetching_menu_items", { error: String(error) });
+    return NextResponse.json(
+      { error: "Failed to fetch menu items" },
+      { status: 500 }
+    );
+  }
 });
 
 // POST /api/menu-items - Create a new menu item
 export const POST = withLogging(async (req: NextRequest) => {
   try {
+    await dbConnect();
     const body = await req.json();
 
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    // Validate required fields
+    if (!body.name || !body.price || !body.restaurantId) {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: "Missing required fields: name, price, and restaurantId are required" 
+        },
+        { status: 400 }
+      );
+    }
 
-    const newItem = {
-      id: Date.now(),
+    // Validate price
+    const price = parseFloat(body.price);
+    if (isNaN(price) || price < 0) {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: "Invalid price. Price must be a positive number" 
+        },
+        { status: 400 }
+      );
+    }
+
+    const newItem = await MenuItem.create({
       name: body.name,
       description: body.description || "",
-      price: parseFloat(body.price),
-      category: body.category || "New",
-      available: body.available !== undefined ? body.available : true,
-      restaurantId: body.restaurantId || 1,
-    };
+      price: price,
+      category: body.category || "Uncategorized",
+      isAvailable: body.isAvailable !== undefined ? body.isAvailable : true,
+      restaurantId: body.restaurantId,
+      imageUrl: body.imageUrl,
+      imagePublicId: body.imagePublicId,
+    });
 
-    mockMenuItems.push(newItem);
-
-    logger.info("menu_item_created", { newItem });
+    logger.info("menu_item_created", { menuItemId: newItem._id });
 
     return NextResponse.json(
       {
+        success: true,
         data: newItem,
         message: "Menu item created successfully",
       },
       { status: 201 }
     );
-  } catch (error) {
-    logger.error("error_creating_menu_item", { error: String(error) });
+  } catch (error: any) {
+    logger.error("error_creating_menu_item", { 
+      error: String(error),
+      message: error.message,
+      stack: error.stack 
+    });
+    
     return NextResponse.json(
-      { error: "Failed to create menu item" },
+      { 
+        success: false,
+        error: "Failed to create menu item",
+        details: error.message 
+      },
       { status: 500 }
     );
   }

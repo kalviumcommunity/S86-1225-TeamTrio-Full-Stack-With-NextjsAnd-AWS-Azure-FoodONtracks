@@ -65,7 +65,7 @@ export default function Modal({
       ref={dialogRef}
       aria-labelledby="modal-title"
       aria-modal="true"
-      className="backdrop:bg-black backdrop:bg-opacity-50 rounded-lg shadow-2xl p-0 max-w-md w-full animate-fadeIn"
+      className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 backdrop:bg-black backdrop:bg-opacity-50 rounded-2xl shadow-2xl p-0 max-w-xl w-[90vw] md:w-full animate-fadeIn"
     >
       <div className="bg-white rounded-lg overflow-hidden">
         {/* Header */}

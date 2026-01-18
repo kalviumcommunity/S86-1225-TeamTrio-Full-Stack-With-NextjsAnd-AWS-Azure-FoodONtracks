@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import mongoose from "mongoose";
+import dbConnect from "@/lib/mongodb";
+
+export const runtime = "nodejs";
+import { Review } from "@/models/Review";
+import { Order } from "@/models/Order";
+import { Restaurant } from "@/models/Restaurant";
 import { reviewSchema } from "@/lib/schemas/reviewSchema";
 import { validateData } from "@/lib/validationUtils";
 import { logger } from "@/lib/logger";
 import { withLogging } from "@/lib/requestLogger";
+import { extractAuthUser } from "@/lib/apiAuth";
 
 // GET /api/reviews - Get all reviews with pagination
 async function GET_handler(req: NextRequest) {
   try {
+    await dbConnect();
     const { searchParams } = new URL(req.url);
     const page = Number(searchParams.get("page")) || 1;
     const limit = Number(searchParams.get("limit")) || 10;
@@ -17,43 +25,18 @@ async function GET_handler(req: NextRequest) {
 
     const skip = (page - 1) * limit;
 
-    const where: {
-      restaurantId?: number;
-      userId?: number;
-      rating?: { gte: number };
-    } = {};
-    if (restaurantId) where.restaurantId = parseInt(restaurantId);
-    if (userId) where.userId = parseInt(userId);
-    if (minRating) where.rating = { gte: parseInt(minRating) };
+    const filter: any = {};
+    if (restaurantId) filter.restaurantId = restaurantId;
+    if (userId) filter.userId = userId;
+    if (minRating) filter.rating = { $gte: parseInt(minRating) };
 
     const [reviews, total] = await Promise.all([
-      prisma.review.findMany({
-        where,
-        skip,
-        take: limit,
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          restaurant: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          order: {
-            select: {
-              id: true,
-              orderNumber: true,
-            },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      }),
-      prisma.review.count({ where }),
+      Review.find(filter)
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .lean(),
+      Review.countDocuments(filter),
     ]);
 
     return NextResponse.json({
@@ -78,6 +61,17 @@ export const GET = withLogging(GET_handler);
 // POST /api/reviews - Create a review
 async function POST_handler(req: NextRequest) {
   try {
+    await dbConnect();
+    
+    // Verify authentication
+    const user = extractAuthUser(req);
+    if (!user) {
+      return NextResponse.json(
+        { error: "Unauthorized - Authentication required" },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
 
     // Validate input using Zod schema
@@ -89,26 +83,47 @@ async function POST_handler(req: NextRequest) {
     const { userId, restaurantId, orderId, rating, comment } =
       validationResult.data;
 
+    // Verify the authenticated user is the same as the userId in the request
+    if (user.userId !== userId) {
+      return NextResponse.json(
+        { error: "Unauthorized - Cannot submit review for another user" },
+        { status: 403 }
+      );
+    }
+
     // Check if order exists and is delivered
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-    });
+    const order = await Order.findById(orderId);
 
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    if (order.status !== "DELIVERED") {
+    // Verify order belongs to the user
+    if (order.userId.toString() !== userId) {
+      return NextResponse.json(
+        { error: "Unauthorized - This order does not belong to you" },
+        { status: 403 }
+      );
+    }
+
+    // Fix: Check status case-insensitively
+    if (order.status.toLowerCase() !== "delivered") {
       return NextResponse.json(
         { error: "Can only review delivered orders" },
         { status: 400 }
       );
     }
 
+    // Verify order was from the specified restaurant
+    if (order.restaurantId.toString() !== restaurantId) {
+      return NextResponse.json(
+        { error: "Order is not from the specified restaurant" },
+        { status: 400 }
+      );
+    }
+
     // Check if review already exists
-    const existingReview = await prisma.review.findUnique({
-      where: { orderId },
-    });
+    const existingReview = await Review.findOne({ orderId });
 
     if (existingReview) {
       return NextResponse.json(
@@ -117,30 +132,69 @@ async function POST_handler(req: NextRequest) {
       );
     }
 
-    // Create review and update restaurant rating
-    const review = await prisma.$transaction(async (tx) => {
-      const newReview = await tx.review.create({
-        data: {
-          userId,
+    // Create review and update restaurant rating using transaction
+    const session = await mongoose.startSession();
+    let review;
+    
+    try {
+      await session.withTransaction(async () => {
+        // Create review with proper fields
+        const [newReview] = await Review.create([{
+          customerId: userId,
           restaurantId,
           orderId,
-          rating,
-          comment,
-        },
-      });
+          batchNumber: order.batchNumber,
+          restaurantRating: rating,
+          restaurantComment: comment,
+          restaurantRatedAt: new Date(),
+          orderNumber: order.orderNumber,
+          totalAmount: order.totalAmount,
+          isVerified: true,
+          isPublished: true,
+          isFlagged: false,
+        }], { session });
+        
+        review = newReview;
 
-      // Update restaurant average rating
-      const avgRating = await tx.review.aggregate({
-        where: { restaurantId },
-        _avg: { rating: true },
-      });
+        // Update Order.ratings for consistency
+        await Order.findByIdAndUpdate(
+          orderId,
+          {
+            $set: {
+              'ratings.restaurant.rating': rating,
+              'ratings.restaurant.comment': comment,
+              'ratings.restaurant.ratedAt': new Date(),
+            }
+          },
+          { session }
+        );
 
-      await tx.restaurant.update({
-        where: { id: restaurantId },
-        data: { rating: avgRating._avg.rating || 0 },
-      });
+        // Calculate new restaurant average rating from restaurantRating field
+        const result = await Review.aggregate([
+          { $match: { restaurantId: new mongoose.Types.ObjectId(restaurantId), restaurantRating: { $exists: true, $ne: null } } },
+          { $group: { _id: null, avgRating: { $avg: "$restaurantRating" } } }
+        ]).session(session);
 
-      return newReview;
+        const avgRating = result[0]?.avgRating || 0;
+
+        // Update restaurant rating
+        await Restaurant.findByIdAndUpdate(
+          restaurantId,
+          { $set: { rating: avgRating } },
+          { session }
+        );
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    logger.info('review_created', { 
+      context: { 
+        userId, 
+        restaurantId, 
+        orderId, 
+        rating 
+      } 
     });
 
     return NextResponse.json(
@@ -148,7 +202,11 @@ async function POST_handler(req: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    logger.error("error_creating_review", { error: String(error) });
+    logger.error('error_creating_review', { 
+      context: { 
+        error: error instanceof Error ? error.message : String(error) 
+      } 
+    });
     return NextResponse.json(
       { error: "Failed to create review" },
       { status: 500 }

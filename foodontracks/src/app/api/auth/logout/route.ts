@@ -16,7 +16,7 @@ import withLogging from "@/lib/requestLogger";
 export const POST = withLogging(async (req: Request) => {
   try {
     // Clear authentication cookies
-    clearTokenCookies();
+    await clearTokenCookies();
 
     return NextResponse.json({
       success: true,

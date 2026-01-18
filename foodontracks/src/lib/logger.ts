@@ -94,7 +94,16 @@ class Logger {
       const reset = '\x1b[0m';
 
       const logMsg = `${colors[entry.level]}[${entry.level.toUpperCase()}]${reset} ${entry.message}`;
-      console.log(logMsg, entry.meta || '');
+      
+      // Show full context and meta in development
+      if (entry.context || entry.meta) {
+        console.log(logMsg, {
+          ...(entry.context && { context: entry.context }),
+          ...(entry.meta && { meta: entry.meta }),
+        });
+      } else {
+        console.log(logMsg);
+      }
 
       if (entry.stack) {
         console.error(`${colors.error}${entry.stack}${reset}`);
@@ -225,7 +234,5 @@ class Logger {
 }
 
 export const logger = new Logger();
-
-export default logger;
 
 export default logger;

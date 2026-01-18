@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import dbConnect from "@/lib/mongodb";
+import { Address } from "@/models/Address";
+
+export const runtime = "nodejs";
 import { addressCreateSchema } from "@/lib/schemas/addressSchema";
 import { validateData } from "@/lib/validationUtils";
 import { logger } from "@/lib/logger";
@@ -8,6 +11,7 @@ import withLogging from "@/lib/requestLogger";
 // GET /api/addresses
 export const GET = withLogging(async (req: NextRequest) => {
   try {
+    await dbConnect();
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
 
@@ -18,10 +22,8 @@ export const GET = withLogging(async (req: NextRequest) => {
       );
     }
 
-    const addresses = await prisma.address.findMany({
-      where: { userId: parseInt(userId) },
-      orderBy: { isDefault: "desc" },
-    });
+    const addresses = await Address.find({ userId })
+      .sort({ isDefault: -1 });
 
     return NextResponse.json({ data: addresses });
   } catch (error) {
@@ -36,6 +38,7 @@ export const GET = withLogging(async (req: NextRequest) => {
 // POST /api/addresses
 export const POST = withLogging(async (req: NextRequest) => {
   try {
+    await dbConnect();
     const body = await req.json();
 
     // Validate input using Zod schema
@@ -57,23 +60,20 @@ export const POST = withLogging(async (req: NextRequest) => {
 
     // If setting as default, unset other defaults
     if (isDefault) {
-      await prisma.address.updateMany({
-        where: { userId, isDefault: true },
-        data: { isDefault: false },
-      });
+      await Address.updateMany(
+        { userId, isDefault: true },
+        { $set: { isDefault: false } }
+      );
     }
 
-    const address = await prisma.address.create({
-      data: {
-        userId,
-        addressLine1,
-        addressLine2,
-        city,
-        state,
-        zipCode,
-        country,
-        isDefault: isDefault || false,
-      },
+    const address = await Address.create({
+      userId,
+      street: addressLine2 ? `${addressLine1}, ${addressLine2}` : addressLine1,
+      city,
+      state,
+      zipCode,
+      country,
+      isDefault: isDefault || false,
     });
 
     return NextResponse.json(

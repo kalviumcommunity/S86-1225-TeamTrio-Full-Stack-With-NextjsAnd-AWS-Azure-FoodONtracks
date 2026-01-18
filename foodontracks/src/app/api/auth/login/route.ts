@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
-import { prisma } from "@/lib/prisma";
+import dbConnect from "@/lib/mongodb";
+
+export const runtime = "nodejs";
+import { User } from "@/models/User";
 import { generateTokenPair, setTokenCookies } from "@/app/lib/jwtService";
 import { logger } from "@/lib/logger";
 import withLogging from "@/lib/requestLogger";
@@ -18,6 +21,7 @@ import withLogging from "@/lib/requestLogger";
  */
 export const POST = withLogging(async (req: Request) => {
   try {
+    await dbConnect();
     const { email, password } = await req.json();
 
     // Validate input
@@ -29,7 +33,7 @@ export const POST = withLogging(async (req: Request) => {
     }
 
     // Find user
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
       return NextResponse.json(
         { success: false, message: "Invalid credentials" },
@@ -46,32 +50,80 @@ export const POST = withLogging(async (req: Request) => {
       );
     }
 
-    // Generate token pair
+    // Update last login
+    await User.findByIdAndUpdate(user._id, { lastLogin: new Date() });
+
+    // Generate token pair with role information
     const { accessToken, refreshToken } = generateTokenPair({
-      userId: user.id,
+      userId: user._id.toString(),
+      email: user.email,
+      role: user.role,
+      roleLevel: user.roleLevel,
+      restaurantId: user.restaurantId?.toString(),
+    });
+
+    logger.info('user_login_success', {
+      userId: user._id.toString(),
       email: user.email,
       role: user.role,
     });
 
-    // Set HTTP-only cookies
-    setTokenCookies(accessToken, refreshToken);
+    // Determine redirect URL based on role
+    const redirectMap: Record<string, string> = {
+      ADMIN: '/dashboard/admin',
+      RESTAURANT_OWNER: '/dashboard/restaurant',
+      DELIVERY_GUY: '/dashboard/delivery',
+      CUSTOMER: '/dashboard/customer',
+    };
+    const redirectUrl = redirectMap[user.role] || '/dashboard';
 
-    // Return success response
-    return NextResponse.json({
+    // Create response with user data
+    const response = NextResponse.json({
       success: true,
       message: "Login successful",
       user: {
-        id: user.id,
+        id: user._id,
         email: user.email,
         name: user.name,
         role: user.role,
+        roleLevel: user.roleLevel,
+        restaurantId: user.restaurantId,
       },
+      redirectUrl, // Role-based redirect URL
       tokens: {
         accessToken, // Also return in body for non-browser clients
         refreshToken,
         expiresIn: 900, // 15 minutes in seconds
       },
     });
+
+    // Set HTTP-only cookies in response
+    const isProduction = process.env.NODE_ENV === "production";
+    
+    response.cookies.set("accessToken", accessToken, {
+      httpOnly: true,
+      secure: false, // Set to false for development (localhost)
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60, // 24 hours
+      path: "/",
+    });
+
+    response.cookies.set("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: false, // Set to false for development (localhost)
+      sameSite: "lax",
+      maxAge: 30 * 24 * 60 * 60, // 30 days
+      path: "/",
+    });
+
+    console.log("🍪 Cookies set:", {
+      accessTokenLength: accessToken.length,
+      refreshTokenLength: refreshToken.length,
+      isProduction,
+      secure: false,
+    });
+
+    return response;
   } catch (err: unknown) {
     const error = err as Error;
     logger.error("auth_login_error", { error: error instanceof Error ? error.message : String(error) });

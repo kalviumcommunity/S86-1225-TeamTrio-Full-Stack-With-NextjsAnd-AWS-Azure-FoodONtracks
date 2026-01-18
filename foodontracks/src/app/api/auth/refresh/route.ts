@@ -26,7 +26,7 @@ import withLogging from "@/lib/requestLogger";
 export const POST = withLogging(async (req: Request) => {
   try {
     // Get refresh token from cookie or request body
-    let refreshToken = getRefreshToken();
+    let refreshToken = await getRefreshToken();
 
     if (!refreshToken) {
       const body = await req.json().catch(() => ({}));
@@ -73,7 +73,7 @@ export const POST = withLogging(async (req: Request) => {
     }
 
     // Set new cookies
-    setTokenCookies(newAccessToken, newRefreshToken);
+    await setTokenCookies(newAccessToken, newRefreshToken);
 
     // Return new tokens
     return NextResponse.json({
@@ -82,7 +82,7 @@ export const POST = withLogging(async (req: Request) => {
       tokens: {
         accessToken: newAccessToken,
         ...(shouldRotateRefresh && { refreshToken: newRefreshToken }),
-        expiresIn: 900, // 15 minutes
+        expiresIn: 86400, // 24 hours in seconds
       },
     });
   } catch (err: unknown) {

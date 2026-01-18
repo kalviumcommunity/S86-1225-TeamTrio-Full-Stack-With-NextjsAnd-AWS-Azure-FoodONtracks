@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import FormInput from "@/components/ui/FormInput";
 import Link from "next/link";
 import { logger } from "@/lib/logger";
+import { AlertTriangle } from "lucide-react";
 
 // Define validation schema
 const contactSchema = z.object({
@@ -35,7 +36,7 @@ export default function ContactForm() {
   };
 
   return (
-    <main className="min-h-screen p-6 flex flex-col items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-gray-800">
+    <main className="min-h-screen p-6 flex flex-col items-center justify-center bg-linear-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-gray-800">
       <div className="w-full max-w-2xl">
         <h1 className="text-3xl font-bold mb-2 text-center text-gray-800 dark:text-white">
           Contact Us
@@ -92,7 +93,7 @@ export default function ContactForm() {
             />
             {errors.message && (
               <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                <span>⚠️</span>
+                <AlertTriangle className="w-4 h-4" />
                 {errors.message.message}
               </p>
             )}
