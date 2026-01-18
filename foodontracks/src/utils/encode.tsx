@@ -77,7 +77,7 @@ export function sanitizeToText(html: string): string {
  * @returns HTML-encoded string
  */
 export function htmlEncode(str: string): string {
-  if (!str || typeof str !== "string") {
+  if (typeof document === 'undefined' || !str || typeof str !== "string") {
     return "";
   }
 
