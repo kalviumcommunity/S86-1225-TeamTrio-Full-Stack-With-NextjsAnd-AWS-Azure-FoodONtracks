@@ -1,15 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import mongoose from "mongoose";
+import dbConnect from "@/lib/mongodb";
+
+export const runtime = "nodejs";
+import { Order } from "@/models/Order";
+import { User, UserRole } from "@/models/User";
+import { Restaurant } from "@/models/Restaurant";
+import { Address } from "@/models/Address";
+import { MenuItem } from "@/models/MenuItem";
 import { sendSuccess, sendError } from "@/lib/responseHandler";
 import { ERROR_CODES } from "@/lib/errorCodes";
 import { orderSchema } from "@/lib/schemas/orderSchema";
 import { validateData } from "@/lib/validationUtils";
 import { logger } from "@/lib/logger";
-import withLogging from "@/lib/requestLogger";
+import { generateBatchNumber } from "@/lib/rbac";
+import { withAuth, withPermission } from "@/lib/apiAuth";
 
-// GET /api/orders - Get all orders with pagination
-export const GET = withLogging(async (req: NextRequest) => {
+// GET /api/orders - Get orders with RBAC filtering
+export const GET = withAuth(async (req: NextRequest, user) => {
   try {
+    await dbConnect();
     const { searchParams } = new URL(req.url);
     const page = Number(searchParams.get("page")) || 1;
     const limit = Number(searchParams.get("limit")) || 10;
@@ -19,63 +29,28 @@ export const GET = withLogging(async (req: NextRequest) => {
 
     const skip = (page - 1) * limit;
 
-    const where: {
-      userId?: number;
-      restaurantId?: number;
-      status?: string;
-    } = {};
-    if (userId) where.userId = parseInt(userId);
-    if (restaurantId) where.restaurantId = parseInt(restaurantId);
-    if (status) where.status = status;
+    const filter: Record<string, unknown> = {};
+    if (userId) filter.userId = userId;
+    if (restaurantId) filter.restaurantId = restaurantId;
+    if (status) filter.status = status;
+
+    // Apply RBAC ownership filters
+    if (user.role === UserRole.CUSTOMER) {
+      filter.userId = user.userId;
+    } else if (user.role === UserRole.RESTAURANT_OWNER) {
+      filter.restaurantId = user.restaurantId;
+    }
+    // ADMIN sees all orders (no filter)
 
     const [orders, total] = await Promise.all([
-      prisma.order.findMany({
-        where,
-        skip,
-        take: limit,
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-          restaurant: {
-            select: {
-              id: true,
-              name: true,
-              city: true,
-            },
-          },
-          address: true,
-          deliveryPerson: {
-            select: {
-              id: true,
-              name: true,
-              phoneNumber: true,
-            },
-          },
-          orderItems: {
-            include: {
-              menuItem: {
-                select: {
-                  name: true,
-                  category: true,
-                },
-              },
-            },
-          },
-          payment: {
-            select: {
-              paymentMethod: true,
-              status: true,
-            },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      }),
-      prisma.order.count({ where }),
+      Order.find(filter)
+        .populate('userId', 'name email phone')
+        .populate('restaurantId', 'name')
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .lean(),
+      Order.countDocuments(filter),
     ]);
 
     return sendSuccess(
@@ -93,17 +68,18 @@ export const GET = withLogging(async (req: NextRequest) => {
   } catch (error) {
     logger.error("error_fetching_orders", { error: String(error) });
     return sendError(
+      ERROR_CODES.DATABASE_ERROR,
       "Failed to fetch orders",
-      ERROR_CODES.DATABASE_FAILURE,
-      500,
-      error
+      error instanceof Error ? error.message : String(error),
+      500
     );
   }
 });
 
-// POST /api/orders - Create a new order
-export const POST = withLogging(async (req: NextRequest) => {
+// POST /api/orders - Create order (CUSTOMER only)
+export const POST = withPermission('orders', 'create', async (req: NextRequest) => {
   try {
+    await dbConnect();
     const body = await req.json();
 
     // Validate input using Zod schema
@@ -121,33 +97,34 @@ export const POST = withLogging(async (req: NextRequest) => {
       tax,
       discount,
       specialInstructions,
+      paymentMethod,
     } = validationResult.data;
 
     // Verify user, restaurant, and address exist
     const [user, restaurant, address] = await Promise.all([
-      prisma.user.findUnique({ where: { id: userId } }),
-      prisma.restaurant.findUnique({ where: { id: restaurantId } }),
-      prisma.address.findUnique({ where: { id: addressId } }),
+      User.findById(userId),
+      Restaurant.findById(restaurantId),
+      Address.findById(addressId),
     ]);
 
     if (!user || !restaurant || !address) {
       return sendError(
+        ERROR_CODES.RESOURCE_NOT_FOUND,
         "User, restaurant, or address not found",
-        ERROR_CODES.NOT_FOUND,
+        undefined,
         404
       );
     }
 
     // Fetch menu items and calculate total
     const menuItemIds = orderItems.map((item) => item.menuItemId);
-    const menuItems = await prisma.menuItem.findMany({
-      where: { id: { in: menuItemIds } },
-    });
+    const menuItems = await MenuItem.find({ _id: { $in: menuItemIds } });
 
     if (menuItems.length !== menuItemIds.length) {
       return sendError(
+        ERROR_CODES.RESOURCE_NOT_FOUND,
         "Some menu items not found",
-        ERROR_CODES.MENU_ITEM_NOT_FOUND,
+        undefined,
         404
       );
     }
@@ -169,52 +146,85 @@ export const POST = withLogging(async (req: NextRequest) => {
     const finalTotal =
       totalAmount + (deliveryFee || 0) + (tax || 0) - (discount || 0);
 
+    // Normalize payment method for Mongoose model (expects lowercase values)
+    const normalizedPaymentMethod =
+      paymentMethod === "CASH"
+        ? "cash"
+        : paymentMethod === "CARD"
+        ? "card"
+        : "online"; // UPI, WALLET, etc. treated as online
+
     // Create order with order items in a transaction
-    const order = await prisma.$transaction(async (tx) => {
-      const newOrder = await tx.order.create({
-        data: {
+    const session = await mongoose.startSession();
+    let order;
+
+    try {
+      await session.withTransaction(async () => {
+        // Generate unique batch number
+        let batchNumber = generateBatchNumber();
+        
+        // Ensure batch number is unique
+        let existing = await Order.findOne({ batchNumber }).session(session);
+        while (existing) {
+          batchNumber = generateBatchNumber();
+          existing = await Order.findOne({ batchNumber }).session(session);
+        }
+
+        // Prepare order data with batch traceability
+        const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
+        const orderData = {
           userId,
           restaurantId,
-          addressId,
-          status: "PENDING",
+          batchNumber, // foodontrack-XXXXX format
+          orderNumber,
+          status: "pending",
           totalAmount: finalTotal,
-          deliveryFee: deliveryFee || 0,
-          tax: tax || 0,
-          discount: discount || 0,
-          specialInstructions,
-          orderItems: {
-            create: orderItemsData,
+          deliveryAddress: address.street || `${address.city}, ${address.state}`,
+          phoneNumber: specialInstructions?.match(/Phone:\s*([+\d\s-]+)/)?.[1]?.trim() || user.phoneNumber || '0000000000',
+          paymentMethod: normalizedPaymentMethod,
+          paymentStatus: 'completed',
+          notes: specialInstructions,
+          items: orderItemsData.map(item => ({
+            menuItemId: new mongoose.Types.ObjectId(item.menuItemId),
+            name: menuItems.find(mi => mi._id.toString() === item.menuItemId)?.name || 'Unknown',
+            quantity: item.quantity,
+            price: item.priceAtTime,
+          })),
+          orderTimeline: {
+            orderPlaced: new Date(),
           },
-        },
-        include: {
-          orderItems: {
-            include: {
-              menuItem: true,
-            },
-          },
-        },
-      });
+        };
 
-      // Create initial tracking event
-      await tx.orderTracking.create({
-        data: {
-          orderId: newOrder.id,
-          status: "PENDING",
-          notes: "Order received",
-        },
-      });
+        console.log('Creating order with data:', JSON.stringify(orderData, null, 2));
+        const createdOrders = await Order.create([orderData], { session });
+        order = createdOrders[0];
 
-      return newOrder;
-    });
+        logger.info('order_created_with_batch', {
+          context: {
+            orderId: order._id?.toString(),
+            batchNumber,
+            userId,
+            restaurantId,
+          }
+        });
+      });
+    } finally {
+      await session.endSession();
+    }
 
     return sendSuccess(order, "Order created successfully", 201);
   } catch (error) {
-    logger.error("error_creating_order", { error: String(error) });
+    console.error('Order creation error details:', error);
+    logger.error("error_creating_order", { 
+      error: String(error), 
+      stack: error instanceof Error ? error.stack : undefined,
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
     return sendError(
+      ERROR_CODES.DATABASE_ERROR,
       "Failed to create order",
-      ERROR_CODES.DATABASE_FAILURE,
-      500,
-      error
+      error instanceof Error ? error.message : String(error),
+      500
     );
   }
 });

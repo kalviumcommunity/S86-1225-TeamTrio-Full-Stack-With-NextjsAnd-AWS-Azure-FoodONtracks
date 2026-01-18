@@ -1,8 +1,13 @@
 
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
+import dbConnect from "@/lib/mongodb";
+
+export const runtime = "nodejs";
+import { File } from "@/models/File";
 import { sendSuccess, sendError } from "@/lib/responseHandler";
 import { ERROR_CODES } from "@/lib/errorCodes";
+import { logger } from "@/lib/logger";
+import withLogging from "@/lib/requestLogger";
  
 
 /**
@@ -20,6 +25,7 @@ import { ERROR_CODES } from "@/lib/errorCodes";
  */
 export const POST = withLogging(async (req: NextRequest) => {
   try {
+    await dbConnect();
     const body = await req.json();
     const { name, url, fileType, fileSize, uploaderId, entityType, entityId } =
       body;
@@ -35,16 +41,14 @@ export const POST = withLogging(async (req: NextRequest) => {
     }
 
     // Create file record in database
-    const file = await prisma.file.create({
-      data: {
-        name,
-        url,
-        fileType,
-        fileSize: parseInt(fileSize.toString()),
-        uploaderId: uploaderId ? parseInt(uploaderId.toString()) : null,
-        entityType: entityType || null,
-        entityId: entityId ? parseInt(entityId.toString()) : null,
-      },
+    const file = await File.create({
+      name,
+      url,
+      fileType,
+      fileSize: parseInt(fileSize.toString()),
+      uploaderId: uploaderId || undefined,
+      entityType: entityType || undefined,
+      entityId: entityId ? parseInt(entityId.toString()) : undefined,
     });
 
     return sendSuccess(file, "File metadata saved successfully", 201);
@@ -74,6 +78,7 @@ export const POST = withLogging(async (req: NextRequest) => {
  */
 export const GET = withLogging(async (req: NextRequest) => {
   try {
+    await dbConnect();
     const { searchParams } = new URL(req.url);
     const entityType = searchParams.get("entityType");
     const entityId = searchParams.get("entityId");
@@ -81,25 +86,20 @@ export const GET = withLogging(async (req: NextRequest) => {
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
 
-    // Build where clause
-    const where: {
-      entityType?: string;
-      entityId?: number;
-      uploaderId?: number;
-    } = {};
-    if (entityType) where.entityType = entityType;
-    if (entityId) where.entityId = parseInt(entityId);
-    if (uploaderId) where.uploaderId = parseInt(uploaderId);
+    // Build filter
+    const filter: any = {};
+    if (entityType) filter.entityType = entityType;
+    if (entityId) filter.entityId = parseInt(entityId);
+    if (uploaderId) filter.uploaderId = uploaderId;
 
     // Fetch files with pagination
     const [files, total] = await Promise.all([
-      prisma.file.findMany({
-        where,
-        take: limit,
-        skip: offset,
-        orderBy: { createdAt: "desc" },
-      }),
-      prisma.file.count({ where }),
+      File.find(filter)
+        .limit(limit)
+        .skip(offset)
+        .sort({ createdAt: -1 })
+        .lean(),
+      File.countDocuments(filter),
     ]);
 
     return sendSuccess(
@@ -137,6 +137,7 @@ export const GET = withLogging(async (req: NextRequest) => {
  */
 export const DELETE = withLogging(async (req: NextRequest) => {
   try {
+    await dbConnect();
     const body = await req.json();
     const { ids } = body;
 
@@ -150,17 +151,13 @@ export const DELETE = withLogging(async (req: NextRequest) => {
     }
 
     // Delete files from database
-    const result = await prisma.file.deleteMany({
-      where: {
-        id: {
-          in: ids.map((id) => parseInt(id.toString())),
-        },
-      },
+    const result = await File.deleteMany({
+      _id: { $in: ids }
     });
 
     return sendSuccess(
-      { deletedCount: result.count },
-      `Successfully deleted ${result.count} file(s)`,
+      { deletedCount: result.deletedCount },
+      `Successfully deleted ${result.deletedCount} file(s)`,
       200
     );
   } catch (error: unknown) {

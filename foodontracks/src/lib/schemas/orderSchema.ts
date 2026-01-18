@@ -7,20 +7,23 @@
 import { z } from "zod";
 
 export const orderItemSchema = z.object({
-  menuItemId: z.string().uuid("Invalid menu item ID"),
+  menuItemId: z.string().min(1, "Invalid menu item ID"),
   quantity: z.number().int().min(1, "Quantity must be at least 1"),
   price: z.number().min(0, "Price must be positive"),
   specialInstructions: z.string().max(500).optional(),
 });
 
 export const orderSchema = z.object({
-  userId: z.string().uuid("Invalid user ID"),
-  restaurantId: z.string().uuid("Invalid restaurant ID"),
-  items: z
+  userId: z.string().min(1, "Invalid user ID"),
+  restaurantId: z.string().min(1, "Invalid restaurant ID"),
+  orderItems: z
     .array(orderItemSchema)
     .min(1, "Order must contain at least one item"),
-  deliveryAddressId: z.string().uuid("Invalid delivery address ID"),
+  addressId: z.string().min(1, "Invalid delivery address ID"),
   paymentMethod: z.enum(["CASH", "CARD", "UPI", "WALLET"]),
+  deliveryFee: z.number().min(0).optional(),
+  tax: z.number().min(0).optional(),
+  discount: z.number().min(0).optional(),
   specialInstructions: z.string().max(1000).optional(),
   scheduledFor: z.string().datetime().optional(),
 });

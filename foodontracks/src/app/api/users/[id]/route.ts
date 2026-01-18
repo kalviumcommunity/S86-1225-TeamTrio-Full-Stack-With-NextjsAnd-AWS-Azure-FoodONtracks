@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import dbConnect from "@/lib/mongodb";
+import { User } from "@/models/User";
+
+export const runtime = "nodejs";
 import { userUpdateSchema } from "@/lib/schemas/userSchema";
 import { handleError, AppError, ErrorType } from "@/lib/errorHandler";
 import { logger } from "@/lib/logger";
@@ -12,55 +15,16 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await dbConnect();
     const { id } = await params;
-    const userId = parseInt(id);
 
-    if (isNaN(userId)) {
-      throw new AppError(
-        ErrorType.VALIDATION_ERROR,
-        400,
-        "Invalid user ID format",
-        { providedId: id }
-      );
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phoneNumber: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
-        addresses: {
-          select: {
-            id: true,
-            addressLine1: true,
-            addressLine2: true,
-            city: true,
-            state: true,
-            zipCode: true,
-            isDefault: true,
-          },
-        },
-        _count: {
-          select: {
-            orders: true,
-            reviews: true,
-          },
-        },
-      },
-    });
+    const user = await User.findById(id).select('-password');
 
     if (!user) {
-      throw new AppError(ErrorType.NOT_FOUND_ERROR, 404, "User not found", {
-        userId,
-      });
+      throw new AppError(ErrorType.NOT_FOUND_ERROR, 404, "User not found", { userId: id });
     }
 
-    logger.info("User retrieved", { userId });
+    logger.info("User retrieved", { userId: id });
 
     return NextResponse.json({
       success: true,
@@ -69,7 +33,7 @@ export async function GET(
   } catch (error) {
     return handleError(error, `GET /api/users/[id]`);
   }
-});
+}
 
 // PUT /api/users/[id] - Update a user
 export const PUT = withLogging(async (
@@ -77,50 +41,29 @@ export const PUT = withLogging(async (
   { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
+    await dbConnect();
     const { id } = await params;
-    const userId = parseInt(id);
-
-    if (isNaN(userId)) {
-      throw new AppError(
-        ErrorType.VALIDATION_ERROR,
-        400,
-        "Invalid user ID format",
-        { providedId: id }
-      );
-    }
-
     const body = await req.json();
 
     // Validate input using Zod schema
     const validatedData = userUpdateSchema.parse(body);
 
     // Check if user exists
-    const existingUser = await prisma.user.findUnique({
-      where: { id: userId },
-    });
+    const existingUser = await User.findById(id);
 
     if (!existingUser) {
-      throw new AppError(ErrorType.NOT_FOUND_ERROR, 404, "User not found", {
-        userId,
-      });
+      throw new AppError(ErrorType.NOT_FOUND_ERROR, 404, "User not found", { userId: id });
     }
 
     // Update user
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data: validatedData,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phoneNumber: true,
-        role: true,
-        updatedAt: true,
-      },
-    });
+    const user = await User.findByIdAndUpdate(
+      id,
+      { $set: validatedData },
+      { new: true }
+    ).select('-password');
 
     logger.info("User updated successfully", {
-      userId,
+      userId: id,
       updatedFields: Object.keys(validatedData),
     });
 
@@ -142,34 +85,17 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const userId = parseInt(id);
 
-    if (isNaN(userId)) {
-      throw new AppError(
-        ErrorType.VALIDATION_ERROR,
-        400,
-        "Invalid user ID format",
-        { providedId: id }
-      );
-    }
+    // Delete user (cascade will handle related records)
+    const user = await User.findByIdAndDelete(id);
 
-    // Check if user exists
-    const existingUser = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!existingUser) {
+    if (!user) {
       throw new AppError(ErrorType.NOT_FOUND_ERROR, 404, "User not found", {
-        userId,
+        userId: id,
       });
     }
 
-    // Delete user (cascade will handle related records)
-    await prisma.user.delete({
-      where: { id: userId },
-    });
-
-    logger.info("User deleted", { userId });
+    logger.info("User deleted", { userId: id });
 
     return NextResponse.json({
       success: true,
@@ -178,3 +104,4 @@ export async function DELETE(
   } catch (error) {
     return handleError(error, `DELETE /api/users/[id]`);
   }
+}

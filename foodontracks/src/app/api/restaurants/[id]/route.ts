@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import dbConnect from "@/lib/mongodb";
+import { Restaurant } from "@/models/Restaurant";
+import { RestaurantAddress } from "@/models/RestaurantAddress";
+
+export const runtime = "nodejs";
+import { MenuItem } from "@/models/MenuItem";
 import { restaurantUpdateSchema } from "@/lib/schemas/restaurantSchema";
 import { validateData } from "@/lib/validationUtils";
 import { logger } from "@/lib/logger";
@@ -12,31 +17,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await dbConnect();
     const { id } = await params;
-    const restaurantId = parseInt(id);
 
-    if (isNaN(restaurantId)) {
-      return NextResponse.json(
-        { error: "Invalid restaurant ID" },
-        { status: 400 }
-      );
-    }
-
-    const restaurant = await prisma.restaurant.findUnique({
-      where: { id: restaurantId },
-      include: {
-        menuItems: {
-          where: { isAvailable: true },
-          orderBy: { category: "asc" },
-        },
-        _count: {
-          select: {
-            orders: true,
-            reviews: true,
-          },
-        },
-      },
-    });
+    const restaurant = await Restaurant.findById(id);
 
     if (!restaurant) {
       return NextResponse.json(
@@ -45,7 +29,22 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ data: restaurant });
+    // Fetch physical address from RestaurantAddress collection
+    const address = await RestaurantAddress.findOne({ restaurantId: id }).lean();
+
+    const restaurantWithAddress = {
+      ...restaurant.toObject(),
+      physicalAddress: address ? {
+        street: address.street,
+        city: address.city,
+        state: address.state,
+        zipCode: address.zipCode,
+        country: address.country,
+        landmark: address.landmark,
+      } : null,
+    };
+
+    return NextResponse.json({ data: restaurantWithAddress });
   } catch (error) {
     logger.error("error_fetching_restaurant", { error: String(error) });
     return NextResponse.json(
@@ -53,7 +52,7 @@ export async function GET(
       { status: 500 }
     );
   }
-});
+}
 
 // PUT /api/restaurants/[id] - Update a restaurant
 export const PUT = withLogging(async (
@@ -61,15 +60,8 @@ export const PUT = withLogging(async (
   { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
+    await dbConnect();
     const { id } = await params;
-    const restaurantId = parseInt(id);
-
-    if (isNaN(restaurantId)) {
-      return NextResponse.json(
-        { error: "Invalid restaurant ID" },
-        { status: 400 }
-      );
-    }
 
     const body = await req.json();
 
@@ -79,23 +71,19 @@ export const PUT = withLogging(async (
       return NextResponse.json(validationResult, { status: 400 });
     }
 
-    // Check if restaurant exists
-    const existingRestaurant = await prisma.restaurant.findUnique({
-      where: { id: restaurantId },
-    });
+    // Update restaurant
+    const restaurant = await Restaurant.findByIdAndUpdate(
+      id,
+      { $set: validationResult.data },
+      { new: true, runValidators: true }
+    );
 
-    if (!existingRestaurant) {
+    if (!restaurant) {
       return NextResponse.json(
         { error: "Restaurant not found" },
         { status: 404 }
       );
     }
-
-    // Update restaurant
-    const restaurant = await prisma.restaurant.update({
-      where: { id: restaurantId },
-      data: validationResult.data,
-    });
 
     return NextResponse.json({
       message: "Restaurant updated successfully",
@@ -117,32 +105,18 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await dbConnect();
     const { id } = await params;
-    const restaurantId = parseInt(id);
 
-    if (isNaN(restaurantId)) {
-      return NextResponse.json(
-        { error: "Invalid restaurant ID" },
-        { status: 400 }
-      );
-    }
+    // Delete restaurant
+    const restaurant = await Restaurant.findByIdAndDelete(id);
 
-    // Check if restaurant exists
-    const existingRestaurant = await prisma.restaurant.findUnique({
-      where: { id: restaurantId },
-    });
-
-    if (!existingRestaurant) {
+    if (!restaurant) {
       return NextResponse.json(
         { error: "Restaurant not found" },
         { status: 404 }
       );
     }
-
-    // Delete restaurant
-    await prisma.restaurant.delete({
-      where: { id: restaurantId },
-    });
 
     return NextResponse.json({
       message: "Restaurant deleted successfully",
@@ -154,3 +128,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
+}

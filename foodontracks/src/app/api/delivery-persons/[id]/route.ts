@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import dbConnect from "@/lib/mongodb";
+import { DeliveryPerson } from "@/models/DeliveryPerson";
+
+export const runtime = "nodejs";
+import { Order } from "@/models/Order";
 import { deliveryPersonUpdateSchema } from "@/lib/schemas/deliveryPersonSchema";
 import { validateData } from "@/lib/validationUtils";
 import { logger } from "@/lib/logger";
@@ -12,45 +16,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await dbConnect();
     const { id } = await params;
-    const deliveryPersonId = parseInt(id);
 
-    if (isNaN(deliveryPersonId)) {
-      return NextResponse.json(
-        { error: "Invalid delivery person ID" },
-        { status: 400 }
-      );
-    }
-
-    const deliveryPerson = await prisma.deliveryPerson.findUnique({
-      where: { id: deliveryPersonId },
-      include: {
-        orders: {
-          select: {
-            id: true,
-            orderNumber: true,
-            status: true,
-            totalAmount: true,
-            createdAt: true,
-            restaurant: {
-              select: {
-                name: true,
-                city: true,
-              },
-            },
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
-          take: 10,
-        },
-        _count: {
-          select: {
-            orders: true,
-          },
-        },
-      },
-    });
+    const deliveryPerson = await DeliveryPerson.findById(id);
 
     if (!deliveryPerson) {
       return NextResponse.json(
@@ -67,6 +36,7 @@ export async function GET(
       { status: 500 }
     );
   }
+}
 
 // PUT /api/delivery-persons/[id] - Update delivery person
 export const PUT = withLogging(async (
@@ -74,15 +44,8 @@ export const PUT = withLogging(async (
   { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
+    await dbConnect();
     const { id } = await params;
-    const deliveryPersonId = parseInt(id);
-
-    if (isNaN(deliveryPersonId)) {
-      return NextResponse.json(
-        { error: "Invalid delivery person ID" },
-        { status: 400 }
-      );
-    }
 
     const body = await request.json();
 
@@ -93,9 +56,7 @@ export const PUT = withLogging(async (
     }
 
     // Check if delivery person exists
-    const existingDeliveryPerson = await prisma.deliveryPerson.findUnique({
-      where: { id: deliveryPersonId },
-    });
+    const existingDeliveryPerson = await DeliveryPerson.findById(id);
 
     if (!existingDeliveryPerson) {
       return NextResponse.json(
@@ -108,9 +69,7 @@ export const PUT = withLogging(async (
 
     // Check for email uniqueness if email is being updated
     if (email && email !== existingDeliveryPerson.email) {
-      const emailExists = await prisma.deliveryPerson.findUnique({
-        where: { email },
-      });
+      const emailExists = await DeliveryPerson.findOne({ email });
 
       if (emailExists) {
         return NextResponse.json(
@@ -122,9 +81,7 @@ export const PUT = withLogging(async (
 
     // Check for phone number uniqueness if being updated
     if (phoneNumber && phoneNumber !== existingDeliveryPerson.phoneNumber) {
-      const phoneExists = await prisma.deliveryPerson.findUnique({
-        where: { phoneNumber },
-      });
+      const phoneExists = await DeliveryPerson.findOne({ phoneNumber });
 
       if (phoneExists) {
         return NextResponse.json(
@@ -134,10 +91,11 @@ export const PUT = withLogging(async (
       }
     }
 
-    const updatedDeliveryPerson = await prisma.deliveryPerson.update({
-      where: { id: deliveryPersonId },
-      data: validationResult.data,
-    });
+    const updatedDeliveryPerson = await DeliveryPerson.findByIdAndUpdate(
+      id,
+      { $set: validationResult.data },
+      { new: true, runValidators: true }
+    );
 
     return NextResponse.json({
       message: "Delivery person updated successfully",
@@ -150,6 +108,7 @@ export const PUT = withLogging(async (
       { status: 500 }
     );
   }
+});
 
 // DELETE /api/delivery-persons/[id] - Delete delivery person
 
@@ -158,27 +117,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await dbConnect();
     const { id } = await params;
-    const deliveryPersonId = parseInt(id);
-
-    if (isNaN(deliveryPersonId)) {
-      return NextResponse.json(
-        { error: "Invalid delivery person ID" },
-        { status: 400 }
-      );
-    }
 
     // Check if delivery person exists
-    const existingDeliveryPerson = await prisma.deliveryPerson.findUnique({
-      where: { id: deliveryPersonId },
-      include: {
-        _count: {
-          select: {
-            orders: true,
-          },
-        },
-      },
-    });
+    const existingDeliveryPerson = await DeliveryPerson.findById(id);
 
     if (!existingDeliveryPerson) {
       return NextResponse.json(
@@ -188,12 +131,10 @@ export async function DELETE(
     }
 
     // Check if delivery person has active orders
-    const activeOrders = await prisma.order.count({
-      where: {
-        deliveryPersonId: deliveryPersonId,
-        status: {
-          in: ["PENDING", "CONFIRMED", "PREPARING", "PICKED_UP"],
-        },
+    const activeOrders = await Order.countDocuments({
+      deliveryPersonId: id,
+      status: {
+        $in: ["PENDING", "CONFIRMED", "PREPARING", "PICKED_UP"],
       },
     });
 
@@ -206,9 +147,7 @@ export async function DELETE(
       );
     }
 
-    await prisma.deliveryPerson.delete({
-      where: { id: deliveryPersonId },
-    });
+    await DeliveryPerson.findByIdAndDelete(id);
 
     return NextResponse.json({
       message: "Delivery person deleted successfully",
@@ -220,3 +159,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
+}

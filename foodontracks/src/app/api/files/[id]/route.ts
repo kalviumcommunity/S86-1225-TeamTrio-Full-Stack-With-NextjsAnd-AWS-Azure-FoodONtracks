@@ -1,54 +1,45 @@
-    }
-  }
-}
+import { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import dbConnect from "@/lib/mongodb";
+
+export const runtime = "nodejs";
+import { File } from "@/models/File";
 import { sendSuccess, sendError } from "@/lib/responseHandler";
 import { ERROR_CODES } from "@/lib/errorCodes";
- 
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/files/[id]
  * Retrieves a single file by ID
  */
-
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  
   try {
+    await dbConnect();
     const { id } = await params;
-    const fileId = parseInt(id);
 
-    if (isNaN(fileId)) {
-      return sendError(
-        ERROR_CODES.VALIDATION_ERROR,
-        "Invalid file ID",
-        undefined,
-        400
-      );
-    }
-
-    const file = await prisma.file.findUnique({
-      where: { id: fileId },
-    });
+    const file = await File.findById(id);
 
     if (!file) {
       return sendError(
         ERROR_CODES.FILE_NOT_FOUND,
         "File not found",
         undefined,
-        import { NextRequest } from "next/server";
-        import { NextResponse } from "next/server";
+        404
+      );
+    }
 
-        // Minimal, parse-safe handlers for /api/files/[id]
-        export async function GET(_req: NextRequest, _ctx: any) {
-          return NextResponse.json({ ok: true });
-        }
-
-        export const PATCH = async (_req: NextRequest, _ctx: any) => {
-          return NextResponse.json({ ok: true });
-        };
-
-        export async function DELETE(_req: NextRequest, _ctx: any) {
-          return NextResponse.json({ ok: true });
-        }
+    return sendSuccess(file, "File retrieved successfully", 200);
+  } catch (error: unknown) {
+    logger.error("error_retrieving_file", { error: String(error) });
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return sendError(
+      ERROR_CODES.DATABASE_ERROR,
+      "Failed to retrieve file",
+      errorMessage,
+      500
+    );
+  }
+}

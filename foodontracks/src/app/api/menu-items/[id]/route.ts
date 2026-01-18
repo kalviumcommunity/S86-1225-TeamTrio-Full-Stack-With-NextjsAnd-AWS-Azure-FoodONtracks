@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import withLogging from "@/lib/requestLogger";
-
-// Mock implementation for SWR demo
+import dbConnect from "@/lib/mongodb";
+import { MenuItem } from "@/models/MenuItem";
 
 // GET /api/menu-items/[id]
 
@@ -11,32 +11,21 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await dbConnect();
     const { id } = await params;
-    const menuItemId = parseInt(id);
 
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    const menuItem = await MenuItem.findById(id).lean();
 
-    if (isNaN(menuItemId)) {
+    if (!menuItem) {
       return NextResponse.json(
-        { error: "Invalid menu item ID" },
-        { status: 400 }
+        { error: "Menu item not found" },
+        { status: 404 }
       );
     }
 
-    // Mock data
-    const mockItem = {
-      id: menuItemId,
-      name: "Sample Item",
-      description: "Sample description",
-      price: 10.99,
-      category: "Sample",
-      available: true,
-    };
+    logger.info("fetch_menu_item", { menuItemId: id });
 
-    logger.info("fetch_menu_item", { menuItemId });
-
-    return NextResponse.json({ data: mockItem });
+    return NextResponse.json({ data: menuItem });
   } catch (error) {
     logger.error("error_fetching_menu_item", { error: String(error) });
     return NextResponse.json(
@@ -44,7 +33,7 @@ export async function GET(
       { status: 500 }
     );
   }
-});
+}
 
 // PATCH /api/menu-items/[id]
 export const PATCH = withLogging(async (
@@ -52,25 +41,28 @@ export const PATCH = withLogging(async (
   { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
+    await dbConnect();
     const { id } = await params;
-    const menuItemId = parseInt(id);
     const body = await req.json();
 
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    const updatedMenuItem = await MenuItem.findByIdAndUpdate(
+      id,
+      { $set: body },
+      { new: true, runValidators: true }
+    );
 
-    if (isNaN(menuItemId)) {
+    if (!updatedMenuItem) {
       return NextResponse.json(
-        { error: "Invalid menu item ID" },
-        { status: 400 }
+        { error: "Menu item not found" },
+        { status: 404 }
       );
     }
 
-    logger.info("update_menu_item", { menuItemId, body });
+    logger.info("update_menu_item", { menuItemId: id, updates: Object.keys(body) });
 
     return NextResponse.json({
       message: "Menu item updated successfully",
-      data: { id: menuItemId, ...body },
+      data: updatedMenuItem,
     });
   } catch (error) {
     logger.error("error_updating_menu_item", { error: String(error) });
@@ -87,25 +79,28 @@ export const PUT = withLogging(async (
   { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
+    await dbConnect();
     const { id } = await params;
-    const menuItemId = parseInt(id);
     const body = await req.json();
 
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    const updatedMenuItem = await MenuItem.findByIdAndUpdate(
+      id,
+      body,
+      { new: true, runValidators: true, overwrite: true }
+    );
 
-    if (isNaN(menuItemId)) {
+    if (!updatedMenuItem) {
       return NextResponse.json(
-        { error: "Invalid menu item ID" },
-        { status: 400 }
+        { error: "Menu item not found" },
+        { status: 404 }
       );
     }
 
-    logger.info("update_menu_item_put", { menuItemId, body });
+    logger.info("update_menu_item_put", { menuItemId: id });
 
     return NextResponse.json({
       message: "Menu item updated successfully",
-      data: { id: menuItemId, ...body },
+      data: updatedMenuItem,
     });
   } catch (error) {
     logger.error("error_updating_menu_item_put", { error: String(error) });
@@ -123,20 +118,19 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await dbConnect();
     const { id } = await params;
-    const menuItemId = parseInt(id);
 
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    const deletedMenuItem = await MenuItem.findByIdAndDelete(id);
 
-    if (isNaN(menuItemId)) {
+    if (!deletedMenuItem) {
       return NextResponse.json(
-        { error: "Invalid menu item ID" },
-        { status: 400 }
+        { error: "Menu item not found" },
+        { status: 404 }
       );
     }
 
-    logger.info("delete_menu_item", { menuItemId });
+    logger.info("delete_menu_item", { menuItemId: id });
 
     return NextResponse.json({
       message: "Menu item deleted successfully",
@@ -148,3 +142,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
+}

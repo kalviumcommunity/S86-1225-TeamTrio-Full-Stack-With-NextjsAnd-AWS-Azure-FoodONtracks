@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import mongoose from "mongoose";
+import dbConnect from "@/lib/mongodb";
+
+export const runtime = "nodejs";
+import { Order } from "@/models/Order";
+import { User } from "@/models/User";
+import { Restaurant } from "@/models/Restaurant";
 import { orderUpdateSchema } from "@/lib/schemas/orderSchema";
 import { validateData } from "@/lib/validationUtils";
 import { logger } from "@/lib/logger";
@@ -12,53 +18,65 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await dbConnect();
     const { id } = await params;
-    const orderId = parseInt(id);
 
-    if (isNaN(orderId)) {
-      return NextResponse.json({ error: "Invalid order ID" }, { status: 400 });
-    }
-
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phoneNumber: true,
-          },
-        },
-        restaurant: true,
-        address: true,
-        deliveryPerson: true,
-        orderItems: {
-          include: {
-            menuItem: true,
-          },
-        },
-        tracking: {
-          orderBy: { timestamp: "asc" },
-        },
-        payment: true,
-        review: true,
-      },
-    });
+    const order = await Order.findById(id).lean();
 
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ data: order });
+    // Manual population to avoid populate() errors
+    let userData = null;
+    let restaurantData = null;
+    let deliveryPersonData = null;
+
+    try {
+      if (order.userId) {
+        userData = await User.findById(order.userId).select('name email phone').lean();
+      }
+    } catch (err) {
+      console.log('Failed to populate user:', err);
+    }
+
+    try {
+      if (order.restaurantId) {
+        restaurantData = await Restaurant.findById(order.restaurantId)
+          .select('name location cuisineType address')
+          .lean();
+      }
+    } catch (err) {
+      console.log('Failed to populate restaurant:', err);
+    }
+
+    try {
+      if (order.deliveryPersonId) {
+        deliveryPersonData = await User.findById(order.deliveryPersonId)
+          .select('name email phoneNumber vehicleType vehicleNumber')
+          .lean();
+      }
+    } catch (err) {
+      console.log('Failed to populate delivery person:', err);
+    }
+
+    const populatedOrder = {
+      ...order,
+      userId: userData || order.userId,
+      restaurantId: restaurantData || order.restaurantId,
+      deliveryPersonId: deliveryPersonData || order.deliveryPersonId,
+    };
+
+    return NextResponse.json({ data: populatedOrder });
   } catch (error) {
-    logger.error("error_fetching_order", { error: String(error) });
+    console.error('Order fetch error:', error);
+    logger.error("error_fetching_order", error as Error);
     return NextResponse.json(
       { error: "Failed to fetch order" },
       { status: 500 }
     );
   }
-
+}
 
 // PATCH /api/orders/[id] - Update order status
 export const PATCH = withLogging(async (
@@ -66,72 +84,52 @@ export const PATCH = withLogging(async (
   { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
+    await dbConnect();
     const { id } = await params;
-    const orderId = parseInt(id);
-
-    if (isNaN(orderId)) {
-      return NextResponse.json({ error: "Invalid order ID" }, { status: 400 });
-    }
 
     const body = await req.json();
-
-    // Validate input using Zod schema
-    const validationResult = validateData(orderUpdateSchema, body);
-    if (!validationResult.success || !validationResult.data) {
-      return NextResponse.json(validationResult, { status: 400 });
-    }
+    const { status, batchTracking } = body;
 
     // Check if order exists
-    const existingOrder = await prisma.order.findUnique({
-      where: { id: orderId },
+    const existingOrder = await Order.findById(id);
+    if (!existingOrder) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
-    }
 
-
-    const { status, specialInstructions, deliveryPersonId } =
-      validationResult.data;
-
-    // Update order and create tracking event in transaction
-    const order = await prisma.$transaction(async (tx) => {
-      const updatedOrder = await tx.order.update({
-        where: { id: orderId },
-        data: {
-
-          ...(status && { status }),
-          ...(specialInstructions !== undefined && { specialInstructions }),
-          ...(deliveryPersonId !== undefined && {
-            deliveryPerson: deliveryPersonId
-              ? { connect: { id: parseInt(deliveryPersonId) } }
-              : { disconnect: true },
-          }),
-            ...(status === "DELIVERED" &&
-            !existingOrder.actualDeliveryTime && {
-              actualDeliveryTime: new Date(),
-            }),
-        },
-        include: {
-          orderItems: {
-            include: {
-              menuItem: true,
-            },
-          },
-        },
-      });
-
-      // Create tracking event if status changed
-      if (status && status !== existingOrder.status) {
-        await tx.orderTracking.create({
-          data: {
-            orderId,
-            status,
-          },
-        });
+    const updateData: any = {};
+    
+    if (status) {
+      updateData.status = status;
+      
+      // Update timeline based on status
+      if (status === 'confirmed' && !existingOrder.orderTimeline?.confirmed) {
+        updateData['orderTimeline.confirmed'] = new Date();
+      } else if (status === 'preparing' && !existingOrder.orderTimeline?.preparing) {
+        updateData['orderTimeline.preparing'] = new Date();
+      } else if (status === 'ready' && !existingOrder.orderTimeline?.ready) {
+        updateData['orderTimeline.ready'] = new Date();
+      } else if (status === 'delivered' && !existingOrder.orderTimeline?.delivered) {
+        updateData['orderTimeline.delivered'] = new Date();
       }
+    }
 
-      return updatedOrder;
-    });
+    if (batchTracking) {
+      Object.keys(batchTracking).forEach(key => {
+        updateData[`batchTracking.${key}`] = batchTracking[key];
+      });
+    }
+
+    const order = await Order.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).populate('userId', 'name email phone')
+     .populate('restaurantId', 'name');
+
+    logger.info("order_updated", { orderId: id, updates: updateData });
 
     return NextResponse.json({
+      success: true,
       message: "Order updated successfully",
       data: order,
     });
@@ -142,6 +140,7 @@ export const PATCH = withLogging(async (
       { status: 500 }
     );
   }
+});
 
 // PUT /api/orders/[id] - Update order status (alias for PATCH)
 export const PUT = withLogging(async (
@@ -149,12 +148,8 @@ export const PUT = withLogging(async (
   { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
+    await dbConnect();
     const { id } = await params;
-    const orderId = parseInt(id);
-
-    if (isNaN(orderId)) {
-      return NextResponse.json({ error: "Invalid order ID" }, { status: 400 });
-    }
 
     const body = await req.json();
 
@@ -165,9 +160,7 @@ export const PUT = withLogging(async (
     }
 
     // Check if order exists
-    const existingOrder = await prisma.order.findUnique({
-      where: { id: orderId },
-    });
+    const existingOrder = await Order.findById(id);
 
     if (!existingOrder) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
@@ -177,43 +170,28 @@ export const PUT = withLogging(async (
       validationResult.data;
 
     // Update order and create tracking event in transaction
-    const order = await prisma.$transaction(async (tx) => {
-      const updatedOrder = await tx.order.update({
-        where: { id: orderId },
-        data: {
-          ...(status && { status }),
-          ...(specialInstructions !== undefined && { specialInstructions }),
-          ...(deliveryPersonId !== undefined && {
-            deliveryPerson: deliveryPersonId
-              ? { connect: { id: parseInt(deliveryPersonId) } }
-              : { disconnect: true },
-          }),
-          ...(status === "DELIVERED" &&
-            !existingOrder.actualDeliveryTime && {
-              actualDeliveryTime: new Date(),
-            }),
-        },
-        include: {
-          orderItems: {
-            include: {
-              menuItem: true,
-            },
-          },
-        },
+    const session = await mongoose.startSession();
+    let order;
+
+    try {
+      await session.withTransaction(async () => {
+        const updateData: any = {};
+        if (status) updateData.status = status;
+        if (specialInstructions !== undefined) updateData.specialInstructions = specialInstructions;
+        if (deliveryPersonId !== undefined) updateData.deliveryPersonId = deliveryPersonId;
+        if (status === "DELIVERED" && !existingOrder.actualDeliveryTime) {
+          updateData.actualDeliveryTime = new Date();
+        }
+
+        order = await Order.findByIdAndUpdate(
+          id,
+          { $set: updateData },
+          { new: true, session }
+        );
       });
-
-      // Create tracking event if status changed
-      if (status && status !== existingOrder.status) {
-        await tx.orderTracking.create({
-          data: {
-            orderId,
-            status,
-          },
-        });
-      }
-
-      return updatedOrder;
-    });
+    } finally {
+      await session.endSession();
+    }
 
     return NextResponse.json({
       message: "Order updated successfully",
@@ -226,26 +204,19 @@ export const PUT = withLogging(async (
       { status: 500 }
     );
   }
-
-}
+});
 
 // DELETE /api/orders/[id] - Cancel order
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) => {
+) {
   try {
+    await dbConnect();
     const { id } = await params;
-    const orderId = parseInt(id);
-
-    if (isNaN(orderId)) {
-      return NextResponse.json({ error: "Invalid order ID" }, { status: 400 });
-    }
 
     // Check if order exists and can be cancelled
-    const existingOrder = await prisma.order.findUnique({
-      where: { id: orderId },
-    });
+    const existingOrder = await Order.findById(id);
 
     if (!existingOrder) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
@@ -259,22 +230,22 @@ export async function DELETE(
     }
 
     // Update status to cancelled
-    const order = await prisma.$transaction(async (tx) => {
-      const updatedOrder = await tx.order.update({
-        where: { id: orderId },
-        data: { status: "CANCELLED" },
-      });
+    const session = await mongoose.startSession();
+    let order;
 
-      await tx.orderTracking.create({
-        data: {
-          orderId,
-          status: "CANCELLED",
-          notes: "Order cancelled by user",
-        },
-      });
+    try {
+      await session.withTransaction(async () => {
+        order = await Order.findByIdAndUpdate(
+          id,
+          { $set: { status: "CANCELLED" } },
+          { new: true, session }
+        );
 
-      return updatedOrder;
-    });
+        // Note: Order tracking would be stored in Order model's tracking array
+      });
+    } finally {
+      await session.endSession();
+    }
 
     return NextResponse.json({
       message: "Order cancelled successfully",
@@ -287,4 +258,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
-});
+}

@@ -16,8 +16,8 @@ const REFRESH_TOKEN_SECRET =
   process.env.REFRESH_TOKEN_SECRET || "dev_refresh_secret_change_me";
 
 // Token lifespans
-const ACCESS_TOKEN_EXPIRY = "15m"; // 15 minutes
-const REFRESH_TOKEN_EXPIRY = "7d"; // 7 days
+const ACCESS_TOKEN_EXPIRY = "24h"; // 24 hours
+const REFRESH_TOKEN_EXPIRY = "30d"; // 30 days
 
 /**
  * JWT Token Structure:
@@ -29,9 +29,11 @@ const REFRESH_TOKEN_EXPIRY = "7d"; // 7 days
  */
 
 export interface TokenPayload {
-  userId: number;
+  userId: number | string;
   email: string;
   role: string;
+  roleLevel?: number;
+  restaurantId?: string;
   type?: "access" | "refresh";
 }
 
@@ -50,6 +52,8 @@ export function generateAccessToken(payload: TokenPayload): string {
       userId: payload.userId,
       email: payload.email,
       role: payload.role,
+      roleLevel: payload.roleLevel,
+      restaurantId: payload.restaurantId,
       type: "access",
     },
     ACCESS_TOKEN_SECRET,
@@ -70,6 +74,8 @@ export function generateRefreshToken(payload: TokenPayload): string {
       userId: payload.userId,
       email: payload.email,
       role: payload.role,
+      roleLevel: payload.roleLevel,
+      restaurantId: payload.restaurantId,
       type: "refresh",
     },
     REFRESH_TOKEN_SECRET,
@@ -166,51 +172,56 @@ export function verifyRefreshToken(token: string): TokenPayload {
  * - secure: Only sent over HTTPS (in production)
  * - sameSite: Prevents CSRF attacks
  */
-export function setTokenCookies(accessToken: string, refreshToken: string) {
-  const cookieStore = cookies();
+export async function setTokenCookies(accessToken: string, refreshToken: string) {
+  const cookieStore = await cookies();
   const isProduction = process.env.NODE_ENV === "production";
 
-  // Access Token Cookie (15 minutes)
+  // Access Token Cookie (24 hours)
   cookieStore.set("accessToken", accessToken, {
     httpOnly: true,
     secure: isProduction,
-    sameSite: "strict",
-    maxAge: 15 * 60, // 15 minutes in seconds
+    sameSite: "lax",
+    maxAge: 24 * 60 * 60, // 24 hours in seconds
     path: "/",
   });
 
-  // Refresh Token Cookie (7 days)
+  // Refresh Token Cookie (30 days)
   cookieStore.set("refreshToken", refreshToken, {
     httpOnly: true,
     secure: isProduction,
-    sameSite: "strict",
-    maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+    sameSite: "lax",
+    maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
     path: "/",
   });
 }
 
 /**
- * Get token from cookies or Authorization header
+ * Get access token from cookies
+ * For App Router - uses next/headers cookies() directly
+ * No request parameter needed - cookies() handles the request context
  */
-export function getAccessToken(req: Request): string | null {
-  // Try Authorization header first
-  const authHeader = req.headers.get("authorization");
+export async function getAccessToken(): Promise<string | null> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("accessToken");
+  return token?.value || null;
+}
+
+/**
+ * Get access token from Authorization header (for API clients)
+ * Use this variant when you need to support Bearer token auth
+ */
+export function getAccessTokenFromHeader(authHeader: string | null): string | null {
   if (authHeader && authHeader.startsWith("Bearer ")) {
     return authHeader.substring(7);
   }
-
-  // Try cookie (for browser requests)
-  const cookieStore = cookies();
-  const tokenFromCookie = cookieStore.get("accessToken");
-
-  return tokenFromCookie?.value || null;
+  return null;
 }
 
 /**
  * Get refresh token from cookies
  */
-export function getRefreshToken(): string | null {
-  const cookieStore = cookies();
+export async function getRefreshToken(): Promise<string | null> {
+  const cookieStore = await cookies();
   const token = cookieStore.get("refreshToken");
   return token?.value || null;
 }
@@ -218,8 +229,8 @@ export function getRefreshToken(): string | null {
 /**
  * Clear authentication cookies
  */
-export function clearTokenCookies() {
-  const cookieStore = cookies();
+export async function clearTokenCookies() {
+  const cookieStore = await cookies();
 
   cookieStore.delete("accessToken");
   cookieStore.delete("refreshToken");

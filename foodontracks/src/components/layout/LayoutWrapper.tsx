@@ -1,24 +1,42 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import Header from './Header';
 import Sidebar from './Sidebar';
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col h-screen">
-      {/* Header */}
-      <Header />
+  const pathname = usePathname();
+  
+  // Check if current page is a dashboard page
+  const isDashboardPage = pathname?.startsWith('/dashboard');
+  
+  // Auth pages that should not have Header/Sidebar (clean standalone pages)
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
 
-      {/* Main Content with Sidebar */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <Sidebar />
+  // If it's an auth page (login, signup), render children without any layout
+  if (isAuthPage) {
+    return <>{children}</>;
+  }
 
-        {/* Page Content */}
-        <main className="flex-1 bg-white overflow-auto p-6">
-          <div className="max-w-7xl mx-auto">{children}</div>
-        </main>
+  // Dashboard pages have their own layouts with sidebars, but need Header
+  if (isDashboardPage) {
+    return (
+      <div className="flex flex-col h-screen">
+        <Header />
+        <div className="flex-1 overflow-hidden">
+          {children}
+        </div>
       </div>
+    );
+  }
+
+  // Homepage and other pages (/, /restaurants, /cart, etc.) get Header only
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Header />
+      <main className="flex-1">
+        {children}
+      </main>
     </div>
   );
 }

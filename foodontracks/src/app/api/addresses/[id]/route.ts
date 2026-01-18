@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import dbConnect from "@/lib/mongodb";
+import { Address } from "@/models/Address";
+
+export const runtime = "nodejs";
 import { addressUpdateSchema } from "@/lib/schemas/addressSchema";
 import { validateData } from "@/lib/validationUtils";
 import { logger } from "@/lib/logger";
@@ -13,20 +16,11 @@ export async function GET(
 ) {
   let idStr: string | undefined = undefined;
   try {
+    await dbConnect();
     const { id } = await params;
     idStr = id;
-    const addressId = parseInt(id);
 
-    if (isNaN(addressId)) {
-      return NextResponse.json(
-        { error: "Invalid address ID" },
-        { status: 400 }
-      );
-    }
-
-    const address = await prisma.address.findUnique({
-      where: { id: addressId },
-    });
+    const address = await Address.findById(id);
 
     if (!address) {
       return NextResponse.json({ error: "Address not found" }, { status: 404 });
@@ -40,7 +34,7 @@ export async function GET(
       { status: 500 }
     );
   }
-
+}
 
 // PUT /api/addresses/[id]
 export const PUT = withLogging(async (
@@ -49,16 +43,9 @@ export const PUT = withLogging(async (
 ) => {
   let idStr: string | undefined = undefined;
   try {
+    await dbConnect();
     const { id } = await params;
     idStr = id;
-    const addressId = parseInt(id);
-
-    if (isNaN(addressId)) {
-      return NextResponse.json(
-        { error: "Invalid address ID" },
-        { status: 400 }
-      );
-    }
 
     const body = await req.json();
 
@@ -75,10 +62,11 @@ export const PUT = withLogging(async (
       );
     }
 
-    const address = await prisma.address.update({
-      where: { id: addressId },
-      data: validationResult.data as any,
-    });
+    const address = await Address.findByIdAndUpdate(
+      id,
+      { $set: validationResult.data },
+      { new: true, runValidators: true }
+    );
 
     return NextResponse.json({
       message: "Address updated successfully",
@@ -101,20 +89,11 @@ export async function DELETE(
 ) {
   let idStr: string | undefined = undefined;
   try {
+    await dbConnect();
     const { id } = await params;
     idStr = id;
-    const addressId = parseInt(id);
 
-    if (isNaN(addressId)) {
-      return NextResponse.json(
-        { error: "Invalid address ID" },
-        { status: 400 }
-      );
-    }
-
-    await prisma.address.delete({
-      where: { id: addressId },
-    });
+    await Address.findByIdAndDelete(id);
 
     return NextResponse.json({
       message: "Address deleted successfully",

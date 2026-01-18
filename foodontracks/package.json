@@ -2,26 +2,21 @@
   "name": "foodontracks",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "db:migrate": "prisma migrate dev",
-    "db:generate": "prisma generate",
-    "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "prisma studio",
-    "db:reset": "prisma migrate reset",
     "test:auth": "tsx scripts/auth_test.ts",
     "test:auth-middleware": "tsx scripts/auth_middleware_test.ts",
+    "test:auth-complete": "tsx scripts/test-authentication-complete.ts",
     "test:security": "tsx scripts/test-security-headers.ts",
     "test:db": "tsx scripts/test-db-connection.ts",
+    "test:mongodb": "tsx scripts/test-mongodb-connection.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
@@ -41,10 +36,15 @@
     "axios": "^1.7.9",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.8.0",
     "dotenv": "^17.2.3",
     "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.0",
+    "lucide-react": "^0.562.0",
+    "mongodb": "^7.0.0",
+    "mongoose": "^9.1.2",
     "next": "^16.0.10",
+    "next-cloudinary": "^6.17.5",
     "pg": "^8.16.3",
     "react": "19.2.1",
     "react-dom": "19.2.1",
@@ -54,7 +54,6 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@prisma/client": "^6.19.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^16.3.1",
@@ -73,7 +72,6 @@
     "jest-environment-jsdom": "^29.0.0",
     "lint-staged": "^16.2.7",
     "prettier": "^3.7.4",
-    "prisma": "^6.19.1",
     "tailwindcss": "^4",
     "ts-jest": "^29.1.0",
     "ts-node": "^10.9.2",
