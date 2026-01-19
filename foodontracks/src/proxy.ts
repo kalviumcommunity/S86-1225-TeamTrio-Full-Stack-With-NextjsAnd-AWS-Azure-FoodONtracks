@@ -6,7 +6,7 @@ const ACCESS_TOKEN_SECRET =
   process.env.JWT_SECRET || "dev_jwt_secret_change_me";
 
 /**
- * Next.js Middleware for route protection and HTTPS enforcement
+ * Next.js Proxy (formerly middleware) for route protection and HTTPS enforcement
  *
  * Features:
  * - Enforces HTTPS in production environments
@@ -15,7 +15,7 @@ const ACCESS_TOKEN_SECRET =
  * - Provides user context to downstream handlers
  * - Redirects unauthenticated users to login
  */
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // HTTPS Enforcement in production
@@ -170,13 +170,3 @@ export function middleware(req: NextRequest) {
 
   return NextResponse.next();
 }
-
-export const config = {
-  matcher: [
-    "/dashboard/:path*",
-    "/users/:path*",
-    "/api/admin/:path*",
-    "/api/users/:path*",
-  ],
-  runtime: 'nodejs', // Use Node.js runtime instead of Edge runtime for JWT verification
-};
