@@ -5,6 +5,7 @@
   "scripts": {
     "prepare": "husky install",
     "dev": "npm --prefix ./foodontracks run dev",
+    "build": "npm --prefix ./foodontracks run build",
     "start": "npm --prefix ./foodontracks run start",
     "db:migrate": "npm --prefix ./foodontracks run db:migrate",
     "db:generate": "npm --prefix ./foodontracks run db:generate",
