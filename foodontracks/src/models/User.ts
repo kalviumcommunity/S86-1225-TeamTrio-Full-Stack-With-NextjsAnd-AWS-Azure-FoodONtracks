@@ -80,11 +80,10 @@ const UserSchema = new Schema<IUser>(
 );
 
 // Pre-save middleware to set role level
-UserSchema.pre('save', function(this: any, next: any) {
+UserSchema.pre('save', function(this: any) {
   if (this.isModified('role')) {
     this.roleLevel = ROLE_LEVELS[this.role as UserRole];
   }
-  next();
 });
 
 // Indexes for performance (email index already created by unique: true)

@@ -8,6 +8,9 @@ import '@/lib/validateEnv';
 export const metadata: Metadata = {
   title: "FoodONtracks - Food Traceability System",
   description: "A comprehensive batch traceability system for food management",
+  icons: {
+    icon: '/icon.svg',
+  },
 };
 
 export default function RootLayout({
